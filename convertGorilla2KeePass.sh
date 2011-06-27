@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [[ "$1" == "-h" ]]; then
   echo <<EOF
 File to convert all entries from a Password Gorilla¹ Database into an KeePass importable KeePass(X)-XML file
