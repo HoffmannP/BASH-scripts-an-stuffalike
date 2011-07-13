@@ -15,5 +15,5 @@ If you would like to use my code as a substanial part of something to sell (I do
 ### Status ###
 My scripts are working (or worked) for me. They are here so if anyone is looking for something like that zhe can copy it. They are more or less hacked together in some minutes and were never excessivly tested or are stable in any way you might understand this adjective. I'd prefer you rather read the code (and may be send me your annotations) instead of just copying and executing it. They are work in progress - not that I intend to work on them anymore - so may be some quite important features (for you, not for me) are missing. Feel free to add them (and be kind and send your changes back to me).
 
-## Wallpaper ##
+## WallpaperGrabber ##
 You need Wallpapers but do not want to crawl the whole net after them? This script is the solution for you...
