@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Aufrufmöglichkeit auf der Shell
-# for i in `seq 1 10`; do ./wallpaper.sh; sleep 1; done
+# for i in `seq 1 10`; do ./WallpaperGrabber.sh; sleep 1; done
 
 # Ich speichere die letzte Aufrufnummer am Ende des Skripts
 counter=$(tail -1 "$0");
