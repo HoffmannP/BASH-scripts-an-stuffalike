@@ -21,7 +21,7 @@ if [[ "$1" != "" ]]; then
   	shift;
   fi	
 else
-  resolution="4:3";
+  resolution="16:10";
 fi
 
 # Ich speichere die letzte Aufrufnummer am Ende des Skripts
@@ -69,7 +69,7 @@ fi;
 if [[ $download == "-d" ]]; then
 	mv $img_path "${PWD}/${page_id}_${page_name}_${resolution}_${resol}.jpg";
 else
-    gconftool-2 -s "$gconf_key" --type "string" $img_path
+	gconftool-2 -s "$gconf_key" --type "string" $img_path
 fi;
 
 exit 0;
