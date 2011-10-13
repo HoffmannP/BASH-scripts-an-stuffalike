@@ -62,7 +62,7 @@ rm $tmp_filename;
 # falls nicht starte das script neu
 if [[ $(du $img_path | cut -f1) -lt $minsize ]]; then
 	rm $img_path;
-	$PWD/$(basename $0) $download $resolution
+	$(which $0) $download $resolution
 	exit 0;
 fi;
 
@@ -76,4 +76,4 @@ exit 0;
 
 #Counter
 
-38
+108

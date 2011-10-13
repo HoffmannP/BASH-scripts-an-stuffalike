@@ -1,6 +1,11 @@
 #!/bin/bash
 
-URL=('https://mail1-thueringen.dfn.de:83/Search?h=5e5b6ca358329a5f025afa14d7f191db&email=p2lebe%40uni-jena.de' 'https://mail2-thueringen.dfn.de:83/Search?h=95043ab93c3c9b7f71b3db50ceb05ed3&email=p2lebe%40uni-jena.d'e);
+ironPortUrlsFile="ironPortUrls.csv";
+i=0;
+while read line; do
+	let i=$[i+1];
+	URL[$i]="$line";
+done < "$ironPortUrlsFile";
 
 function releaseMails {
 	URL="$1";

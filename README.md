@@ -29,7 +29,17 @@ Don't forgett to shred your csv file conaining *all your passwords* using 'shred
 This script 'mysqlTunnel.sh' checks if port 3305 is already taken. If yes it tries to kill that program or otherwise fails. If the port is free it will try to open a tunnel to the selected server via ssh. It reads available servers from a csv-server file. That's it.
 
 ## Wallpaper ##
-Have a boring wallpaper as good as it may be? Change it on a regular basis. The 'wallpaper.sh' script gets (sometimes it fails but than just execute it again) a new wallpaper from one of that big wallpaper sites. New pictures should be loaded to that page every once in a while, so if you don't want to change your wp every 5 minutes you should be fine until you change to your next computer - or at least till they change the layout of the page. Just execute it. You may want to change your screen resolution in the script, dig in it!
+Have a boring wallpaper as good as it may be? Change it on a regular basis. The 'wallpaper.sh' script gets a new wallpaper from one of that big wallpaper sites. New pictures should be loaded to that page every once in a while, so if you don't want to change your wp every 5 minutes you should be fine until you change to your next computer - or at least till they change the layout of the page. Just execute it. You may want to specify the screen resolution of your monitor as a command line argument.
+New (and improved): You can specify "-d" command line switch to only download the next wallpaper in line into the current folder (so you may use it for something else.
 
 ## webdoku2pdf.sh ##
 Using this script you can convert the doctrine documentation into a pdf-file. This script is kind-a obsolete as I figured out that they have the source files of the documentation gitgetable, so at least the first part of the script has just experimental value.
+
+## Xdebug_geben_tunnel.sh ##
+This wonderfull littel script opens a port on the sshd just to forward incomming data to the ssh-client (port is 9000, remote host is "sefu")
+
+## IronTrop.sh ##
+Automatically forwards (frees) all quarantined mails from ironPort, just write all your magic URL codes into the csv-file.
+
+## gbo.sh ##
+Grabs the newest german-BASH.org quotes
