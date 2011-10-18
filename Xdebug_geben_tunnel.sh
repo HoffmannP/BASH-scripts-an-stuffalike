@@ -1,2 +1,7 @@
 #!/bin/bash
-ssh -c blowfish -NR 9000:localhost:9000 sefu
+FromHost="sefu";
+FromPort="9000";
+ToHost="localhost";
+ToPort="9000";
+echo "currently tunneling $FromHost:$FromPort -> $ToHost:$ToPort"
+ssh -c blowfish -NR $FromPort:$ToHost:$ToPort "$FromHost";
