@@ -14,10 +14,10 @@ page = con.read()
 con.close()
 print "page loaded"
 
-page = re.sub(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', r'<\1/>', page, flags=re.IGNORECASE)
-page = re.sub(r'<([^>]*)checked([^>]*)>', r'<\1checked="checked"\2>', page)
-page = re.sub(r'(<script[^>]*>).*?(</script>)', r'\1\2', page, flags=re.DOTALL)
-page = re.sub(r'<([^>]*)border=0([^>]*)>', r'<\1border="0"\2>', page)
+page = re.compile(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', re.IGNORECASE).sub(r'<\1/>', page)
+page = re.compile(r'<([^>]*)checked([^>]*)>').sub(r'<\1checked="checked"\2>', page)
+page = re.compile(r'(<script[^>]*>).*?(</script>)', re.DOTALL).sub(r'\1\2', page)
+page = re.compile(r'<([^>]*)border=0([^>]*)>').sub(r'<\1border="0"\2>', page)
 def decomment(m):
     return m.group(1) + m.group(3).replace("-", "") + m.group(5)
 page = re.sub(r'(<!--)(-*)([^>]*)(-*)(-->)', decomment, page)
@@ -25,11 +25,11 @@ page = re.sub(r'(<!--)(-*)([^>]*)(-*)(-->)', decomment, page)
 def urlize(m):
     return m.group(1) + urllib.quote(m.group(2).replace("+", " ")) + m.group(3)
 # clean URL for musicload
-page = re.sub('(<a class=\'musikkaufen_musicload\' href=\'http://)(.*?)(\' target=\'_blank\'>)', urlize, page)
+page = re.compile('(<a class=\'musikkaufen_musicload\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
 # clean URL for amazon
-page = re.sub('(<a class=\'musikkaufen_amazon\' href=\'http://)(.*?)(\' target=\'_blank\'>)', urlize, page)
+page = re.compile('(<a class=\'musikkaufen_amazon\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
 
-page = re.sub(r'</we:master>', '', page)
+page = re.compile(r'</we:master>').sub('', page)
 
 try:
     document = html.parseString(page)
