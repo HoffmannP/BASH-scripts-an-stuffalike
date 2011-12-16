@@ -1,22 +1,38 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import urllib, string, xml.parsers.expat, xml.dom.minidom as html, re, sys, time, sqlite3
+import argparse, urllib, urllib2, string, xml.parsers.expat, xml.dom.minidom as html, re, sys, time, sqlite3
 
-url = "http://www.antennethueringen.de/at_www/musik/playlist/index.php"
-station = "Antenne Thüringen"
-dbLocation = "/home/ber/.songs.sqlite3"
+url = 'http://www.antennethueringen.de/at_www/musik/playlist/index.php'
+station = 'Antenne Thüringen'
+dbLocation = '/home/ber/.songs.sqlite3'
 
-def loadPage():
-    now = time.localtime()
-    param = urllib.urlencode({'Tag': 1, 'Stunden': now.tm_hour, 'Minuten': now.tm_min, "Absenden": "Absenden"})
-    con = urllib.urlopen(url, param)
-    page = con.read()
+def cargs():
+    parser = argparse.ArgumentParser('Grab a list of songs aired recently and import them into a sqlite3-DB')
+    parser.add_argument('--time', '-t', type=str, help='Time for which you like to get the playlist')
+    parser.add_argument('--verbose', '-v', action='store_true', default=False, help='Some status output')
+    parser.add_argument('--page', '-p', action='store_true', default=False, help='Print page after download')
+    parser.add_argument('--width', type=int, default=30, help='Number of chars printed around parsing error')
+    return parser.parse_args()
+
+def loadPage(songtime, verbose, printPage):
+    if songtime == None: 
+        now = time.localtime()
+        hour = now.tm_hour
+        min = now.tm_min
+    else:
+        hour, min = songtime.split(":")
+    param = urllib.urlencode({'Tag': 1, 'Stunden': hour, 'Minuten': min, "Absenden": "Absenden"})
+    con = urllib2.urlopen(url, param)
+    page = con.read().decode('iso-8859-15', 'ignore').encode('utf-8')
+    if printPage:
+        print page
     con.close()
-    # print "page loaded"
+    if verbose:
+        print "page loaded"
     return page
 
-def cleanPage(page):
+def cleanPage(page, verbose, width):
     page = re.compile(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', re.IGNORECASE).sub(r'<\1/>', page)
     page = re.compile(r'<([^>]*)checked([^>]*)>').sub(r'<\1checked="checked"\2>', page)
     page = re.compile(r'(<script[^>]*>).*?(</script>)', re.DOTALL).sub(r'\1\2', page)
@@ -40,11 +56,11 @@ def cleanPage(page):
 
     try:
         document = html.parseString(page)
-        # print "done parsing"
+        if verbose:
+            print "done parsing"
     except xml.parsers.expat.ExpatError as e:
         lines = page.split("\n")
         print >> sys.stderr, "Error: %s (line %d, column %d)" % (xml.parsers.expat.ErrorString(e.code), e.lineno, e.offset)
-        width = 200
         print >> sys.stderr, "###", lines[e.lineno-1][e.offset-width:e.offset+width], "###"
         sys.exit()
     
@@ -75,8 +91,6 @@ def insertSong(songInfo, station, db):
         "station": station
         }
     d = db.cursor()
-    sA = {}
-    sqlParams = []
     searchElement = "SELECT `id` FROM `%s` WHERE `name` = ?"
     insertElement = "INSERT INTO `%s` (`name`) VALUES (?)"
     searchPlaylist = "SELECT `stamp` FROM `playlist` WHERE `stamp` = ? AND `station` = ?"
@@ -89,17 +103,16 @@ def insertSong(songInfo, station, db):
             db.commit()
             d.execute(searchElement % table, [attribute[table]])
             row = d.fetchone()
-        sA[table] = row[0]
+        attribute[table] = row[0]
         insertPlaylist = insertPlaylist % ("`%s`, " % table + r'%s', r'?, %s')
-        sqlParams.append(sA[table])
     insertPlaylist = insertPlaylist % ("`stamp`", '?')
-    sqlParams.append(attribute['stamp'])
-    d.execute(searchPlaylist, (attribute['stamp'], sA['station']))
+    d.execute(searchPlaylist, (attribute['stamp'], attribute['station']))
     if d.fetchone() == None:
-        d.execute(insertPlaylist, sqlParams)
+        d.execute(insertPlaylist, [v for k,v in attribute.iteritems()])
         db.commit()
 
-document = cleanPage(loadPage())
+args = cargs()
+document = cleanPage(loadPage(args.time, args.verbose, args.page), args.verbose, args.width)
 songs = filter(
     lambda el: el.hasAttribute("class") and el.getAttribute("class") == "box-Content-Border",
     document.getElementsByTagName("div")
@@ -107,4 +120,5 @@ songs = filter(
 insertASong = lambda val: insertSong(val, station, createDB(dbLocation))
 for song in songs:
     insertASong(song.childNodes[1].childNodes)
-# print "songs inserted"
+if args.verbose:
+    print "songs inserted"
