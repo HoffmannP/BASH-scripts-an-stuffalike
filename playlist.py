@@ -64,14 +64,6 @@ def createDB(db_URI):
     db.commit()
     return db
 
-def findSongs(document):
-    divs = document.getElementsByTagName("div")
-    songs = []
-    for div in divs:
-        if div.hasAttribute("class") and div.getAttribute("class") == "box-Content-Border":
-            songs.append(div)
-    return songs
-
 def insertSong(songInfo, station, db):
     attribute = {
         "artist": songInfo[0].childNodes[0].firstChild.nodeValue,
@@ -106,11 +98,13 @@ def insertSong(songInfo, station, db):
     if d.fetchone() == None:
         d.execute(insertPlaylist, sqlParams)
         db.commit()
-    
-page = loadPage()
-document = cleanPage(page)
-songs = findSongs(document)
-db = createDB(dbLocation)
+
+document = cleanPage(loadPage())
+songs = filter(
+    lambda el: el.hasAttribute("class") and el.getAttribute("class") == "box-Content-Border",
+    document.getElementsByTagName("div")
+    )
+insertASong = lambda val: insertSong(val, station, createDB(dbLocation))
 for song in songs:
-    insertSong(song.childNodes[1].childNodes, station, db)
+    insertASong(song.childNodes[1].childNodes)
 print "songs inserted"
