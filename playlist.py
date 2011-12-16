@@ -13,7 +13,7 @@ def loadPage():
     con = urllib.urlopen(url, param)
     page = con.read()
     con.close()
-    print "page loaded"
+    # print "page loaded"
     return page
 
 def cleanPage(page):
@@ -40,7 +40,7 @@ def cleanPage(page):
 
     try:
         document = html.parseString(page)
-        print "done parsing"
+        # print "done parsing"
     except xml.parsers.expat.ExpatError as e:
         lines = page.split("\n")
         print >> sys.stderr, "Error: %s (line %d, column %d)" % (xml.parsers.expat.ErrorString(e.code), e.lineno, e.offset)
@@ -107,4 +107,4 @@ songs = filter(
 insertASong = lambda val: insertSong(val, station, createDB(dbLocation))
 for song in songs:
     insertASong(song.childNodes[1].childNodes)
-print "songs inserted"
+# print "songs inserted"
