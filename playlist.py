@@ -108,7 +108,7 @@ def insertSong(songInfo, station, db):
     insertPlaylist = insertPlaylist % ("`stamp`", '?')
     d.execute(searchPlaylist, (attribute['stamp'], attribute['station']))
     if d.fetchone() == None:
-        d.execute(insertPlaylist, [v for k,v in attribute.iteritems()])
+        d.execute(insertPlaylist, [attribute["artist"], attribute["title"], attribute["station"], attribute['stamp']])
         db.commit()
 
 args = cargs()
