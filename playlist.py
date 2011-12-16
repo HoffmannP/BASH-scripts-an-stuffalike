@@ -5,60 +5,84 @@ import urllib, string, xml.parsers.expat, xml.dom.minidom as html, re, sys, time
 
 url = "http://www.antennethueringen.de/at_www/musik/playlist/index.php"
 station = "Antenne Thüringen"
-dbLocation = "/home/ber/bin/songs.sqlite3"
+dbLocation = "/home/ber/.songs.sqlite3"
 
-now = time.localtime()
-param = urllib.urlencode({'Tag': 1, 'Stunden': now.tm_hour, 'Minuten': now.tm_min, "Absenden": "Absenden"})
-con = urllib.urlopen(url, param)
-page = con.read()
-con.close()
-print "page loaded"
+def loadPage():
+    # now = time.localtime()
+    # param = urllib.urlencode({'Tag': 1, 'Stunden': now.tm_hour, 'Minuten': now.tm_min, "Absenden": "Absenden"})
+    param = urllib.urlencode({'Tag': 1, 'Stunden': 4, 'Minuten': 35, "Absenden": "Absenden"})
+    con = urllib.urlopen(url, param)
+    page = con.read()
+    con.close()
+    print "page loaded"
+    return page
 
-page = re.compile(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', re.IGNORECASE).sub(r'<\1/>', page)
-page = re.compile(r'<([^>]*)checked([^>]*)>').sub(r'<\1checked="checked"\2>', page)
-page = re.compile(r'(<script[^>]*>).*?(</script>)', re.DOTALL).sub(r'\1\2', page)
-page = re.compile(r'<([^>]*)border=0([^>]*)>').sub(r'<\1border="0"\2>', page)
-def decomment(m):
-    return m.group(1) + m.group(3).replace("-", "") + m.group(5)
-page = re.sub(r'(<!--)(-*)([^>]*)(-*)(-->)', decomment, page)
+def cleanPage(page):
+    page = re.compile(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', re.IGNORECASE).sub(r'<\1/>', page)
+    page = re.compile(r'<([^>]*)checked([^>]*)>').sub(r'<\1checked="checked"\2>', page)
+    page = re.compile(r'(<script[^>]*>).*?(</script>)', re.DOTALL).sub(r'\1\2', page)
+    page = re.compile(r'<([^>]*)border=0([^>]*)>').sub(r'<\1border="0"\2>', page)
+    def decomment(m):
+        return m.group(1) + m.group(3).replace("-", "") + m.group(5)
+    page = re.sub(r'(<!--)(-*)([^>]*)(-*)(-->)', decomment, page)
 
-def urlize(m):
-    return m.group(1) + urllib.quote(m.group(2).replace("+", " ")) + m.group(3)
-# clean URL for musicload
-page = re.compile('(<a class=\'musikkaufen_musicload\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
-# clean URL for amazon
-page = re.compile('(<a class=\'musikkaufen_amazon\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
+    def urlize(m):
+        return m.group(1) + urllib.quote(m.group(2).replace("+", " ")) + m.group(3)
+    # clean URL for musicload
+    page = re.compile('(<a class=\'musikkaufen_musicload\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
+    # clean URL for amazon
+    page = re.compile('(<a class=\'musikkaufen_amazon\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
+    def clearTag(m):
+        return m.group(1) + urllib.quote(m.group(2)) + m.group(3) + urllib.quote(m.group(4)) + m.group(5)
+    # clean ALT and TITLE artist tag
+    page = re.compile('(<img src=\'[^\']*?\' border="0" title=\')(.*?)(\' alt=\')(.*?)(\' style=\'.*?\'>)').sub(clearTag, page)
 
-page = re.compile(r'</we:master>').sub('', page)
+    page = re.compile(r'</we:master>').sub('', page)
 
-try:
-    document = html.parseString(page)
-    print "done parsing"
-except xml.parsers.expat.ExpatError as e:
-    lines = page.split("\n")
-    print >> sys.stderr, "Error: %s (line %d, column %d)" % (xml.parsers.expat.ErrorString(e.code), e.lineno, e.offset)
-    width = 100
-    print >> sys.stderr, "###", lines[e.lineno-1][e.offset-width:e.offset+width], "###"
-    sys.exit()
+    try:
+        document = html.parseString(page)
+        print "done parsing"
+    except xml.parsers.expat.ExpatError as e:
+        lines = page.split("\n")
+        print >> sys.stderr, "Error: %s (line %d, column %d)" % (xml.parsers.expat.ErrorString(e.code), e.lineno, e.offset)
+        width = 200
+        print >> sys.stderr, "###", lines[e.lineno-1][e.offset-width:e.offset+width], "###"
+        sys.exit()
+    
+    return document
 
-divs = document.getElementsByTagName("div")
-songs = []
-for div in divs:
-    if div.hasAttribute("class") and div.getAttribute("class") == "box-Content-Border":
-        songs.append(div)
-
-def sqlCreate(d):
+def createDB(db_URI):
+    db = sqlite3.connect(db_URI)
+    db.text_factory = str
     createElementTable = "CREATE TABLE IF NOT EXISTS `%s` ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'name' TEXT)"
     createPlaylistTable = "CREATE TABLE IF NOT EXISTS `playlist` (%s)"
     for table in ["artist", "title", "station"]:
-        d.execute(createElementTable % table)
+        db.execute(createElementTable % table)
         db.commit()
         createPlaylistTable = createPlaylistTable % ("'%s' INTEGER, " % table + r'%s', )
     createPlaylistTable = createPlaylistTable % "'stamp' INTEGER"
-    d.execute(createPlaylistTable);
-    d.commit()
+    db.execute(createPlaylistTable);
+    db.commit()
+    return db
 
-def sqlInsert(db, attribute):
+def findSongs(document):
+    divs = document.getElementsByTagName("div")
+    songs = []
+    for div in divs:
+        if div.hasAttribute("class") and div.getAttribute("class") == "box-Content-Border":
+            songs.append(div)
+    return songs
+
+def insertSong(songInfo, station, db):
+    attribute = {
+        "artist": songInfo[0].childNodes[0].firstChild.nodeValue,
+        "title":  songInfo[0].childNodes[1].firstChild.nodeValue[2:],
+        "stamp":  time.mktime(time.strptime(
+                "%d "%time.localtime().tm_year + songInfo[1].childNodes[2].nodeValue,
+                "%Y den %d.%m um %H:%M Uhr"
+                )),
+        "station": station
+        }
     d = db.cursor()
     sA = {}
     sqlParams = []
@@ -84,19 +108,10 @@ def sqlInsert(db, attribute):
         d.execute(insertPlaylist, sqlParams)
         db.commit()
     
-
-db = sqlite3.connect(dbLocation)
-db.text_factory = str
-sqlCreate(db)
+page = loadPage()
+document = cleanPage(page)
+songs = findSongs(document)
+db = createDB(dbLocation)
 for song in songs:
-    infos = song.childNodes[1].childNodes
-    sqlInsert(db, {
-            "artist": infos[0].childNodes[0].firstChild.nodeValue,
-            "title":  infos[0].childNodes[1].firstChild.nodeValue[2:],
-            "stamp":  time.mktime(time.strptime(
-                    "%d "%time.localtime().tm_year + infos[1].childNodes[2].nodeValue,
-                    "%Y den %d.%m um %H:%M Uhr"
-                    )),
-            "station": station
-            })
+    insertSong(song.childNodes[1].childNodes, station, db)
 print "songs inserted"
