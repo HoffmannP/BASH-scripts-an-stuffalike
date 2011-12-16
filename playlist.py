@@ -8,9 +8,8 @@ station = "Antenne Thüringen"
 dbLocation = "/home/ber/.songs.sqlite3"
 
 def loadPage():
-    # now = time.localtime()
-    # param = urllib.urlencode({'Tag': 1, 'Stunden': now.tm_hour, 'Minuten': now.tm_min, "Absenden": "Absenden"})
-    param = urllib.urlencode({'Tag': 1, 'Stunden': 4, 'Minuten': 35, "Absenden": "Absenden"})
+    now = time.localtime()
+    param = urllib.urlencode({'Tag': 1, 'Stunden': now.tm_hour, 'Minuten': now.tm_min, "Absenden": "Absenden"})
     con = urllib.urlopen(url, param)
     page = con.read()
     con.close()
