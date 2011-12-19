@@ -34,6 +34,7 @@ def loadPage(songtime, verbose, printPage):
 
 def cleanPage(page, verbose, width):
     page = re.compile(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', re.IGNORECASE).sub(r'<\1/>', page)
+    page = re.compile(r'>([^<]*) & ([^<]*)<', re.IGNORECASE).sub(r'>\1 &amp; \2<', page)
     page = re.compile(r'<([^>]*)checked([^>]*)>').sub(r'<\1checked="checked"\2>', page)
     page = re.compile(r'(<script[^>]*>).*?(</script>)', re.DOTALL).sub(r'\1\2', page)
     page = re.compile(r'<([^>]*)border=0([^>]*)>').sub(r'<\1border="0"\2>', page)
