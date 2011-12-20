@@ -7,6 +7,17 @@ url = 'http://www.antennethueringen.de/at_www/musik/playlist/index.php'
 station = 'Antenne Thüringen'
 dbLocation = '/home/ber/.songs.sqlite3'
 
+def genParams(station, playlisttime):
+    if playlisttime == None: 
+        now = time.localtime()
+        hour = now.tm_hour
+        min = now.tm_min
+    else:
+        hour, min = playlisttime.split(":")
+    return {
+        'Antenne Thüringen': lambda hour, min: {'Tag': 1, 'Stunden': hour, 'Minuten': min, "Absenden": "Absenden"}
+        }[station](hour, min)
+
 def cargs():
     parser = argparse.ArgumentParser('Grab a list of songs aired recently and import them into a sqlite3-DB')
     parser.add_argument('--time', '-t', type=str, help='Time for which you like to get the playlist')
@@ -15,14 +26,8 @@ def cargs():
     parser.add_argument('--width', type=int, default=30, help='Number of chars printed around parsing error')
     return parser.parse_args()
 
-def loadPage(songtime, verbose, printPage):
-    if songtime == None: 
-        now = time.localtime()
-        hour = now.tm_hour
-        min = now.tm_min
-    else:
-        hour, min = songtime.split(":")
-    param = urllib.urlencode({'Tag': 1, 'Stunden': hour, 'Minuten': min, "Absenden": "Absenden"})
+def loadPage(station, time_for_playlist, verbose, printPage):
+    param = urllib.urlencode(genParams(station, time_for_playlist))
     con = urllib2.urlopen(url, param)
     page = con.read().decode('iso-8859-15', 'ignore').encode('utf-8')
     if printPage:
@@ -81,16 +86,7 @@ def createDB(db_URI):
     db.commit()
     return db
 
-def insertSong(songInfo, station, db):
-    attribute = {
-        "artist": songInfo[0].childNodes[0].firstChild.nodeValue,
-        "title":  songInfo[0].childNodes[1].firstChild.nodeValue[2:],
-        "stamp":  time.mktime(time.strptime(
-                "%d "%time.localtime().tm_year + songInfo[1].childNodes[2].nodeValue,
-                "%Y den %d.%m um %H:%M Uhr"
-                )),
-        "station": station
-        }
+def insertSong(attribute, station, db):
     d = db.cursor()
     searchElement = "SELECT `id` FROM `%s` WHERE `name` = ?"
     insertElement = "INSERT INTO `%s` (`name`) VALUES (?)"
@@ -112,14 +108,37 @@ def insertSong(songInfo, station, db):
         d.execute(insertPlaylist, [attribute["artist"], attribute["title"], attribute["station"], attribute['stamp']])
         db.commit()
 
+
+def grabAntenneThueringen(document):
+    songsTag = filter(
+        lambda el: el.hasAttribute("class") and el.getAttribute("class") == "box-Content-Border",
+        document.getElementsByTagName("div")
+        )
+    songs = []
+    for songTag in songsTag:
+        songInfo = songTag.childNodes[1].childNodes
+        songs.append({
+            "artist": songInfo[0].childNodes[0].firstChild.nodeValue,
+            "title":  songInfo[0].childNodes[1].firstChild.nodeValue[2:],
+            "stamp":  time.mktime(time.strptime(
+                    "%d "%time.localtime().tm_year + songInfo[1].childNodes[2].nodeValue,
+                    "%Y den %d.%m um %H:%M Uhr"
+                    )),
+            "station": station
+            })
+    return songs
+
+def grabPlaylist(station, document):
+    return {
+        'Antenne Thüringen': grabAntenneThueringen
+        }[station](document)
+                        
+
 args = cargs()
-document = cleanPage(loadPage(args.time, args.verbose, args.page), args.verbose, args.width)
-songs = filter(
-    lambda el: el.hasAttribute("class") and el.getAttribute("class") == "box-Content-Border",
-    document.getElementsByTagName("div")
-    )
+document = cleanPage(loadPage(station, args.time, args.verbose, args.page), args.verbose, args.width)
+songs = grabPlaylist(station, document)
 insertASong = lambda val: insertSong(val, station, createDB(dbLocation))
 for song in songs:
-    insertASong(song.childNodes[1].childNodes)
+    insertASong(song)
 if args.verbose:
     print "songs inserted"
