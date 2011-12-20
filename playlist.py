@@ -1,75 +1,91 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import argparse, urllib, urllib2, string, xml.parsers.expat, xml.dom.minidom as html, re, sys, time, sqlite3
+import argparse, urllib, time, urllib2, BeautifulSoup, sqlite3
 
-url = 'http://www.antennethueringen.de/at_www/musik/playlist/index.php'
-station = 'Antenne Thüringen'
 dbLocation = '/home/ber/.songs.sqlite3'
 
-def genParams(station, playlisttime):
+class abstractRadio:
+    name = None
+    url  = None
+    def params(self, hour, min):
+        raise NotImplementedError
+    def filterSongs(self, document):
+        raise NotImplementedError
+
+class AntenneThueringen(abstractRadio):
+    name = u'Antenne Thüringen'
+    url  = 'http://www.antennethueringen.de/at_www/musik/playlist/index.php'
+    def params(self, hour, min):
+        return {'Tag': 1, 'Stunden': hour, 'Minuten': min, "Absenden": "Absenden"}
+    def filterSongs(self, document):
+        songTags = document.findAll('div', {"class": "box-Content-Border"})
+        songs = []
+        for songTag in songTags:
+            songInfo = songTag.contents[1].contents
+            songs.append({
+                    "artist": songInfo[0].contents[0].contents[0],
+                    "title":  songInfo[0].contents[1].contents[0][3:],
+                    "stamp":  time.mktime(time.strptime(
+                            "%d "%time.localtime().tm_year + songInfo[1].contents[2][1:],
+                            "%Y den %d.%m um %H:%M Uhr"
+                            )),
+                    "station": self.name
+                    })
+        return songs
+
+class LandesWelle(abstractRadio):
+    name = u'LandesWelle Thüringen'
+    url  = 'http://www.landeswelle.de/lwt/playlist/index.html'
+    def params(self, hour, min):
+        return {'search[date]': int(time.time()), 'search[hour]': hour, 'search[minute]': min}
+    def filterSongs(self, document):
+        songTags = document.findAll('div', {"class": "box "})
+        songs = []
+        for songTag in songTags:
+            songInfo = songTag.contents[3].contents
+            songs.append({
+                    "artist": songInfo[3].contents[0][1:-1].upper(),
+                    "title":  songInfo[5].contents[0][1:-1].upper(),
+                    "stamp":  time.mktime(time.strptime(
+                            songInfo[1].contents[0],
+                            "%d.%m.%Y %H:%M Uhr"
+                            )),
+                    "station": self.name
+                    })
+        return songs
+        
+def genParams(Radio, playlisttime):
     if playlisttime == None: 
-        now = time.localtime()
-        hour = now.tm_hour
-        min = now.tm_min
+        today = time.localtime(time.time() - 10*60)
+        hour = today.tm_hour
+        min = today.tm_min
     else:
         hour, min = playlisttime.split(":")
-    return {
-        'Antenne Thüringen': lambda hour, min: {'Tag': 1, 'Stunden': hour, 'Minuten': min, "Absenden": "Absenden"}
-        }[station](hour, min)
+    return Radio.params(hour, min)
 
-def cargs():
-    parser = argparse.ArgumentParser('Grab a list of songs aired recently and import them into a sqlite3-DB')
-    parser.add_argument('--time', '-t', type=str, help='Time for which you like to get the playlist')
-    parser.add_argument('--verbose', '-v', action='store_true', default=False, help='Some status output')
-    parser.add_argument('--page', '-p', action='store_true', default=False, help='Print page after download')
-    parser.add_argument('--width', type=int, default=30, help='Number of chars printed around parsing error')
+def parseArguments(listStations):
+    parser = argparse.ArgumentParser(description='Grab a list of songs aired recently and import them into a sqlite3-DB')
+    parser.add_argument('-v', '--verbose', default=False, action='store_true', help='show verbose output')
+    parser.add_argument('radio', choices=listStations, type=str,               help='querry the selected radiostation')
+    parser.add_argument('-t', '--time',                type=str,               help='grab list of songs aired at this time')
+    parser.add_argument('-p', '--page',    default=False, action='store_true', help='print pretty version downloaded HTML document')
     return parser.parse_args()
 
-def loadPage(station, time_for_playlist, verbose, printPage):
-    param = urllib.urlencode(genParams(station, time_for_playlist))
-    con = urllib2.urlopen(url, param)
-    page = con.read().decode('iso-8859-15', 'ignore').encode('utf-8')
-    if printPage:
-        print page
-    con.close()
-    if verbose:
+def getDocument(Radio, Arguments):
+    postData = urllib.urlencode(genParams(Radio, Arguments.time))
+    connection = urllib2.urlopen(Radio.url, postData)
+    if Arguments.verbose:
+        print "Requesting %s (POST-Data: %s)" % (Radio.url, postData)
+    page = connection.read().decode('iso-8859-15', 'ignore').encode('utf-8')
+    connection.close()
+    if Arguments.verbose:
         print "page loaded"
-    return page
-
-def cleanPage(page, verbose, width):
-    page = re.compile(r'<((?:col|meta|input|img) [^>]*[^/]\s*)>', re.IGNORECASE).sub(r'<\1/>', page)
-    page = re.compile(r'>([^<]*) & ([^<]*)<', re.IGNORECASE).sub(r'>\1 &amp; \2<', page)
-    page = re.compile(r'<([^>]*)checked([^>]*)>').sub(r'<\1checked="checked"\2>', page)
-    page = re.compile(r'(<script[^>]*>).*?(</script>)', re.DOTALL).sub(r'\1\2', page)
-    page = re.compile(r'<([^>]*)border=0([^>]*)>').sub(r'<\1border="0"\2>', page)
-    def decomment(m):
-        return m.group(1) + m.group(3).replace("-", "") + m.group(5)
-    page = re.sub(r'(<!--)(-*)([^>]*)(-*)(-->)', decomment, page)
-
-    def urlize(m):
-        return m.group(1) + urllib.quote(m.group(2).replace("+", " ")) + m.group(3)
-    # clean URL for musicload
-    page = re.compile('(<a class=\'musikkaufen_musicload\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
-    # clean URL for amazon
-    page = re.compile('(<a class=\'musikkaufen_amazon\' href=\'http://)(.*?)(\' target=\'_blank\'>)').sub(urlize, page)
-    def clearTag(m):
-        return m.group(1) + urllib.quote(m.group(2)) + m.group(3) + urllib.quote(m.group(4)) + m.group(5)
-    # clean ALT and TITLE artist tag
-    page = re.compile('(<img src=\'[^\']*?\' border="0" title=\')(.*?)(\' alt=\')(.*?)(\' style=\'.*?\'>)').sub(clearTag, page)
-
-    page = re.compile(r'</we:master>').sub('', page)
-
-    try:
-        document = html.parseString(page)
-        if verbose:
-            print "done parsing"
-    except xml.parsers.expat.ExpatError as e:
-        lines = page.split("\n")
-        print >> sys.stderr, "Error: %s (line %d, column %d)" % (xml.parsers.expat.ErrorString(e.code), e.lineno, e.offset)
-        print >> sys.stderr, "###", lines[e.lineno-1][e.offset-width:e.offset+width], "###"
-        sys.exit()
-    
+    document = BeautifulSoup.BeautifulSoup(page, convertEntities=BeautifulSoup.BeautifulSoup.HTML_ENTITIES)
+    if Arguments.page:
+        print document.prettify()
+    if Arguments.verbose:
+        print "done parsing"
     return document
 
 def createDB(db_URI):
@@ -82,11 +98,11 @@ def createDB(db_URI):
         db.commit()
         createPlaylistTable = createPlaylistTable % ("'%s' INTEGER, " % table + r'%s', )
     createPlaylistTable = createPlaylistTable % "'stamp' INTEGER"
-    db.execute(createPlaylistTable);
+    db.execute(createPlaylistTable)
     db.commit()
     return db
 
-def insertSong(attribute, station, db):
+def insertSong(attribute, Radio, db):
     d = db.cursor()
     searchElement = "SELECT `id` FROM `%s` WHERE `name` = ?"
     insertElement = "INSERT INTO `%s` (`name`) VALUES (?)"
@@ -108,37 +124,22 @@ def insertSong(attribute, station, db):
         d.execute(insertPlaylist, [attribute["artist"], attribute["title"], attribute["station"], attribute['stamp']])
         db.commit()
 
+def main():
+    stations = {
+        'AntenneThueringen': AntenneThueringen,
+        'LandesWelle': LandesWelle
+        }
+    args = parseArguments(stations.keys())
+    radio = stations[args.radio]()
+    document = getDocument(radio, args)
+    songs = radio.filterSongs(document)
+    def insertASong(val):
+        if args.verbose:
+            print val["artist"] + " - " + val["title"] + " @" + str(val["stamp"])
+        insertSong(val, radio, createDB(dbLocation))
+    for song in songs:
+        insertASong(song)
+    if args.verbose:
+        print "songs inserted"
 
-def grabAntenneThueringen(document):
-    songsTag = filter(
-        lambda el: el.hasAttribute("class") and el.getAttribute("class") == "box-Content-Border",
-        document.getElementsByTagName("div")
-        )
-    songs = []
-    for songTag in songsTag:
-        songInfo = songTag.childNodes[1].childNodes
-        songs.append({
-            "artist": songInfo[0].childNodes[0].firstChild.nodeValue,
-            "title":  songInfo[0].childNodes[1].firstChild.nodeValue[2:],
-            "stamp":  time.mktime(time.strptime(
-                    "%d "%time.localtime().tm_year + songInfo[1].childNodes[2].nodeValue,
-                    "%Y den %d.%m um %H:%M Uhr"
-                    )),
-            "station": station
-            })
-    return songs
-
-def grabPlaylist(station, document):
-    return {
-        'Antenne Thüringen': grabAntenneThueringen
-        }[station](document)
-                        
-
-args = cargs()
-document = cleanPage(loadPage(station, args.time, args.verbose, args.page), args.verbose, args.width)
-songs = grabPlaylist(station, document)
-insertASong = lambda val: insertSong(val, station, createDB(dbLocation))
-for song in songs:
-    insertASong(song)
-if args.verbose:
-    print "songs inserted"
+main()
