@@ -36,7 +36,7 @@ def fullTextItem(description, myUrl, aXml):
     description.appendChild(cdata)
     itemsToReplace = itemsToReplace - 1
     lock.release()
-    
+
 feed = "http://feeds2.feedburner.com/gbo-zitate"
 page = xml.dom.minidom.parse(urllib2.urlopen(feed))
 items = page.getElementsByTagName("item")
@@ -46,7 +46,7 @@ itemsToReplace = len(items)
 lock = thread.allocate_lock()
 for item in items:
     thread.start_new_thread(fullTextItem, (
-            item.getElementsByTagName("description")[0], 
+            item.getElementsByTagName("description")[0],
             item.getElementsByTagName("link")[0].firstChild.nodeValue,
             page
             ))
