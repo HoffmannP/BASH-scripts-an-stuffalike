@@ -41,7 +41,7 @@ This wonderfull littel script opens a port on the sshd just to forward incomming
 ## IronTrop.sh ##
 Automatically forwards (frees) all quarantined mails from ironPort, just write all your magic URL codes into the csv-file.
 
-## gbo.sh ##
+## gbo.rss ##
 Grabs the newest german-BASH.org quotes
 
 ## playlist.py ##
