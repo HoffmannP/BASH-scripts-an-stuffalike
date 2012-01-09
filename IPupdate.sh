@@ -3,7 +3,7 @@
 eMail="p2lebe@uni-jena.de"
 host="destroy-club.de"
 user="web386"
-pass='`$/XQr@sK(J`'
+pass='#########'
 
 IP=$(tail -1 $0)
 IP=${IP:2}
