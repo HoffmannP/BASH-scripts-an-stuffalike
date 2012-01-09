@@ -48,3 +48,12 @@ Grabs the newest german-BASH.org quotes
 My first-try python script that fetches the recent songs aired on the "Antenne Thüringen"-programm (a local radio station in Thueringia, Germany located in Erfurt). I don't want to listen to their program but desperatly want to know whats going on in the world of popular music. So I sometime in the future will write another script that figures out who's on the hot rotation.
 Beside that I 1) learned how to parse extremly buggy HTML-code using a XML-DOM-parser and 2) how to write python at all (not knee deep but at least my first real experience). I must say I like python!
 Feel free to use this parser for other radio stations (it's prepared for that)  but let me know, it might help me to figure out who's hot right now.
+
+## alarm.sh ##
+Alarm me after a given period
+
+## heise.rdf ##
+Convert a heise feed into a full text feed
+
+## IPupdate ##
+fetch my ip adress on a regular basis and update it on my home server
