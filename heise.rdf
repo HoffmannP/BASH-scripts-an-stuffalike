@@ -4,24 +4,20 @@
 print "Content-Type:  application/rss+xml"
 print
 
-import urllib2, BeautifulSoup, cgi, thread, xml.dom.minidom
+import urllib2, BeautifulSoup, cgi, xml.dom.minidom, thread
 
-def fullTextItem(description, url):
+
+def fullTextItem(description, url, xml):
     global itemsToReplace
     try:
         page = urllib2.urlopen(url)
         document = BeautifulSoup.BeautifulSoup(page)
-    finally:
-        try:
-            page = urllib2.urlopen(url)
-            document = BeautifulSoup.BeautifulSoup(page)
-        except urllib2.URLError as e:
-            print url
-            print e
-            lock.acquire()
-            itemsToReplace = itemsToReplace - 1
-            lock.release()
-            return
+    except urllib2.URLError:
+        print url
+        lock.acquire()
+        itemsToReplace = itemsToReplace - 1
+        lock.release()
+        return
     meldung = document.find("div", "meldung_wrapper")
     tags = meldung.contents
     extracts = meldung.findAll(text=lambda text:isinstance(text, BeautifulSoup.Comment))
@@ -41,7 +37,9 @@ def fullTextItem(description, url):
             anchor['href'] = "http://www.heise.de" + "/".join(href)
 
     lock.acquire()
-    description.nodeValue = "<![CDATA[" + meldung.__str__() + "]]>"
+    description.removeChild(description.firstChild)
+    cdata = xml.createCDATASection(meldung.__str__().decode("utf-8"))
+    description.appendChild(cdata)
     itemsToReplace = itemsToReplace - 1
     lock.release()
     
@@ -49,16 +47,16 @@ heiseFeed = "http://www.heise.de/newsticker/heise.rdf"
 page = xml.dom.minidom.parse(urllib2.urlopen(heiseFeed))
 items = page.getElementsByTagName("item")
 
-items = items[:5]
+items = items[:30]
 itemsToReplace = len(items)
 lock = thread.allocate_lock()
-
 for item in items:
     thread.start_new_thread(fullTextItem, (
-            item.getElementsByTagName("description")[0].firstChild, 
-            "/".join(item.getElementsByTagName("link")[0].firstChild.nodeValue.split("/")[0:-2])
+            item.getElementsByTagName("description")[0], 
+            "/".join(item.getElementsByTagName("link")[0].firstChild.nodeValue.split("/")[0:-2]),
+            page
             ))
 while itemsToReplace > 0:
     pass
 
-print page.toprettyxml()
+print page.toprettyxml(encoding="utf-8")
