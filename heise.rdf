@@ -6,7 +6,6 @@ print
 
 import urllib2, BeautifulSoup, cgi, xml.dom.minidom, thread
 
-
 def fullTextItem(description, url, xml):
     global itemsToReplace
     try:
