@@ -4,21 +4,24 @@
 print "Content-Type:  application/rss+xml"
 print
 
-import urllib2, BeautifulSoup, cgi
+import urllib2, BeautifulSoup, cgi, thread, xml.dom.minidom
 
-# rdf:RDF muss es heißen, nicht rdf:rdf
-
-heiseFeed = "http://www.heise.de/newsticker/heise.rdf"
-connection = urllib2.urlopen(heiseFeed)
-page = connection.read()
-dom = BeautifulSoup.BeautifulSoup(page)
-items = dom.findAll("item")
-num = 10
-for item in items[:num]:
-    titleTag = item.find("title")
-    url   = "/".join(item.contents[4].split("/")[0:-2])
-    page = urllib2.urlopen(url)
-    document = BeautifulSoup.BeautifulSoup(page)
+def fullTextItem(description, url):
+    global itemsToReplace
+    try:
+        page = urllib2.urlopen(url)
+        document = BeautifulSoup.BeautifulSoup(page)
+    finally:
+        try:
+            page = urllib2.urlopen(url)
+            document = BeautifulSoup.BeautifulSoup(page)
+        except urllib2.URLError as e:
+            print url
+            print e
+            lock.acquire()
+            itemsToReplace = itemsToReplace - 1
+            lock.release()
+            return
     meldung = document.find("div", "meldung_wrapper")
     tags = meldung.contents
     extracts = meldung.findAll(text=lambda text:isinstance(text, BeautifulSoup.Comment))
@@ -26,23 +29,36 @@ for item in items[:num]:
     extracts[len(extracts):] = meldung.findAll(["span", "div"], "ISI_IGNORE")
     extracts[len(extracts):] = meldung.findAll("br", "clear")
     [extract.extract() for extract in extracts]
-    newItem = BeautifulSoup.Tag(dom, "item")
-    newItem.insert(0, titleTag)
-    newItem.insert(1, "<link>" + url + "</link>")
-    descrTag = BeautifulSoup.Tag(dom, "description")
-    descrTag.insert(0, meldung)
-    newItem.insert(2, descrTag)
-    item.replaceWith(newItem)
+    images = meldung.findAll("img")
+    for image in images:
+        src = image['src'].split("/")
+        if src[0] == "":
+            image['src'] = "http://www.heise.de" + "/".join(src)
+    anchors = meldung.findAll("a")
+    for anchor in anchors:
+        href = anchor['href'].split("/")
+        if href[0] == "":
+            anchor['href'] = "http://www.heise.de" + "/".join(href)
 
-[extract.extract() for extract in items[20:]]
-images = dom.findAll("img")
-for image in images:
-    src = image['src'].split("/")
-    if src[0] == "":
-        image['src'] = "http://www.heise.de" + "/".join(src)
-anchors = dom.findAll("a")
-for anchor in anchors:
-    href = anchor['href'].split("/")
-    if href[0] == "":
-        anchor['href'] = "http://www.heise.de" + "/".join(href)
-print dom.prettify()
+    lock.acquire()
+    description.nodeValue = "<![CDATA[" + meldung.__str__() + "]]>"
+    itemsToReplace = itemsToReplace - 1
+    lock.release()
+    
+heiseFeed = "http://www.heise.de/newsticker/heise.rdf"
+page = xml.dom.minidom.parse(urllib2.urlopen(heiseFeed))
+items = page.getElementsByTagName("item")
+
+items = items[:5]
+itemsToReplace = len(items)
+lock = thread.allocate_lock()
+
+for item in items:
+    thread.start_new_thread(fullTextItem, (
+            item.getElementsByTagName("description")[0].firstChild, 
+            "/".join(item.getElementsByTagName("link")[0].firstChild.nodeValue.split("/")[0:-2])
+            ))
+while itemsToReplace > 0:
+    pass
+
+print page.toprettyxml()
