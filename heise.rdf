@@ -4,7 +4,7 @@
 print "Content-Type:  application/rss+xml"
 print
 
-import urllib2, BeautifulSoup, cgi, xml.dom.minidom, thread
+import urllib2, BeautifulSoup, cgi, xml.dom.minidom, thread, socket, time
 
 def fullTextItem(description, url, xml):
     global itemsToReplace
@@ -42,17 +42,21 @@ def fullTextItem(description, url, xml):
     itemsToReplace = itemsToReplace - 1
     lock.release()
     
-heiseFeed = "http://www.heise.de/newsticker/heise.rdf"
-page = xml.dom.minidom.parse(urllib2.urlopen(heiseFeed))
+feed = "http://www.heise.de/newsticker/heise.rdf"
+domain = feed.split("/")[2]
+ip = socket.gethostbyname(domain)
+feed = feed.replace(domain, ip)
+
+page = xml.dom.minidom.parse(urllib2.urlopen(feed))
 items = page.getElementsByTagName("item")
 
-items = items[:30]
+# items = items[:30]
 itemsToReplace = len(items)
 lock = thread.allocate_lock()
 for item in items:
     thread.start_new_thread(fullTextItem, (
             item.getElementsByTagName("description")[0], 
-            "/".join(item.getElementsByTagName("link")[0].firstChild.nodeValue.split("/")[0:-2]),
+            "/".join(item.getElementsByTagName("link")[0].firstChild.nodeValue.split("/")[0:-2]).replace(domain, ip),
             page
             ))
 while itemsToReplace > 0:
