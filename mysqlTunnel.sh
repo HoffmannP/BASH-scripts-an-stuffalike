@@ -1,8 +1,7 @@
 #!/bin/bash
 
-echo $0;
+Port=3306
 
-Port=3306;
 # server.csv is a file containing in the first column your servers name (for your eyes) and the servers address (for your computer)
 SF="bin/server.csv";
 
