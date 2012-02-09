@@ -71,10 +71,10 @@ def optimalResolution(ratio):
             continue
         options = selectForm.findAll('option')
         for option in options:
-            resolution = option.contents
-            if (len(resolution) != 1) or resolution[0] == 'Select Resolution:':
+            resolution = option['value']
+            if resolution is None or resolution == '':
                 continue
-            optimum.find(resolution[0].split('x'))
+            optimum.find(resolution.split('x'))
         break
     return optimum.val()
 
