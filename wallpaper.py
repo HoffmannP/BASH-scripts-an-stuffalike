@@ -95,7 +95,10 @@ def download(url):
 counterFile = '/home/ber/bin/wallpaper'
 counter = getCounter(counterFile)
 downloadPath = '/home/ber/Desktop/'
-wallpaper_gconf_key="/desktop/gnome/background/picture_filename"
+wallpaper_gconf_key='/desktop/gnome/background/picture_filename'
+wallpaper_gconf_key='/desktop/mate/background/picture_filename'
+configTool='/usr/bin/gconftool-2'
+configTool='/usr/bin/mateconftool-2'
 args = parseArguments()
 size = 0
 while size < 50*1024:
@@ -108,7 +111,7 @@ if args.only_download:
     rename(fileName, downloadPath + imageName)
 else:
     call([
-            '/usr/bin/gconftool-2',
+            configTool,
             '-s',
             wallpaper_gconf_key,
             '--type=string',
