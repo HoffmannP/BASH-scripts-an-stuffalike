@@ -43,7 +43,9 @@ if [[ $active > 0 ]]; then
 		if [[ "$PID" == "-" ]]; then
 			zenity --question --text="$(printf "$TEXT_KillElseone" $Port "$TEXT_Rootspace")";
 			if [[ $? == 0 ]]; then
-				PID="$(gksu -g --message "$TEXT_becomeRoot" netstat -ptan 2>/dev/null | grep -m 1 ":$Port" | tr -s \'[:blank:]*\' \'\t\' | cut -f 7)";
+				netstat="$(gksu -g --message "$TEXT_becomeRoot" netstat -ptan 2>/dev/null)";
+				PID="$(echo $netstat | grep -m 1 ":$Port" | tr -s \'[:blank:]*\' \'\t\' | cut -f 7)";
+				# PID="$(gksu -g --message "$TEXT_becomeRoot" netstat -ptan 2>/dev/null | grep -m 1 ":$Port" | tr -s \'[:blank:]*\' \'\t\' | cut -f 7)";
 				NAME="$(echo $PID | cut -d/ -f2)";
 				if [[ $NAME -eq 'mysqld' ]]; then
 					gksu -g --message "$TEXT_becomeRoot" service mysql stop;
@@ -52,7 +54,7 @@ if [[ $active > 0 ]]; then
 				fi
 				active=$(netstat -tan 2>/dev/null | grep ":$Port" | wc -l);
 				if [[ $active > 0 ]]; then
-					zenitry --error --text="$(printf "$TEXT_KillFail" $PID)";
+					zenity --error --text="$(printf "$TEXT_KillFail" $PID)";
 					echo "port is blocked - can\'t unblock" >&2;
 					exit 3;
 				fi;

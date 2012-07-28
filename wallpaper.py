@@ -113,7 +113,7 @@ else:
     call([
             configTool,
             '-s',
-            wallpaper_gconf_key,
+            wallpaper_conf_key,
             '--type=string',
             fileName
         ])
