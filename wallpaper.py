@@ -6,7 +6,7 @@ from urllib2 import urlopen, HTTPError
 import argparse
 from tempfile import NamedTemporaryFile
 from subprocess import call
-from os import rename
+from os import rename, path
 
 def parseArguments():
     parser = argparse.ArgumentParser(description='Change desktop wallpaper from http://interfacelift.com')
@@ -92,11 +92,32 @@ def download(url):
     file.close()
     return file.name, writtenbytes
 
+def whichDesktop(): # zur Zeit gnome2 und mate
+    isMate = path.isfile('/usr/bin/mateconftool-2')
+    isGnome = path.isfile('/usr/bin/gconftool-2')
+    if isMate:
+        return 'mate'
+    if isGnome:
+        return 'gnome2'
+    return False
+
 counterFile = '/home/ber/bin/wallpaper'
 counter = getCounter(counterFile)
 downloadPath = '/home/ber/Desktop/'
-# wallpaper_conf_key="/desktop/gnome/background/picture_filename"
-wallpaper_conf_key="/desktop/mate/background/picture_filename"
+
+desktopDependent = {
+    'mate': {
+        'Tool': '/usr/bin/mateconftool-2',
+        'Key':  '/desktop/mate/background/picture_filename'
+    },
+    'gnome2': {
+        'Tool': '/usr/bin/gconftool-2',
+        'Key':  '/desktop/gnome/background/picture_filename'
+    }
+}
+
+Conf = desktopDependent[whichDesktop()]
+
 args = parseArguments()
 size = 0
 while size < 50*1024:
@@ -109,9 +130,9 @@ if args.only_download:
     rename(fileName, downloadPath + imageName)
 else:
     call([
-            '/usr/bin/mateconftool-2', #gconftool-2',
+            Conf['Tool'],
             '-s',
-            wallpaper_conf_key,
+            Conf['Key'],
             '--type=string',
             fileName
         ])
