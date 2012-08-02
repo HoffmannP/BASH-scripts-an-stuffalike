@@ -104,7 +104,6 @@ def whichDesktop(): # zur Zeit gnome2 und mate
 counterFile = '/home/ber/bin/wallpaper'
 counter = getCounter(counterFile)
 downloadPath = '/home/ber/Desktop/'
-
 desktopDependent = {
     'mate': {
         'Tool': '/usr/bin/mateconftool-2',
@@ -115,11 +114,10 @@ desktopDependent = {
         'Key':  '/desktop/gnome/background/picture_filename'
     }
 }
-
 Conf = desktopDependent[whichDesktop()]
-
 args = parseArguments()
 size = 0
+
 while size < 50*1024:
     resolution = optimalResolution(args.resolution)
     imageName = '%05d_%s_%s.jpg' % (counter, imageBaseName(), resolution)
