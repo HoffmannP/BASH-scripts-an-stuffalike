@@ -8,16 +8,19 @@ import urllib2
 import argparse
 from tempfile import NamedTemporaryFile
 from subprocess import call
-from os import rename, path
+from os import rename, path,popen3
+from sys import exit
 
 useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
 
 def parseArguments():
+    fi,fo,fe = popen3('xdpyinfo  | grep dimensions | tr -s " " "\t" | cut -f3')
+    defaultResolution = fo.read()[:-1]
     parser = argparse.ArgumentParser(description='Change desktop wallpaper from http://interfacelift.com')
     parser.add_argument('-d', '--only-download', default=False, action='store_true', help='Only download wallpaper')
     parser.add_argument('-k', '--desktop', default="Auto", nargs=1, help='Select the desktop environment')
     # parser.add_argument('resolution', default='16:10', nargs='?', help='Specify resolution')
-    parser.add_argument('resolution', default='3360x1050', nargs='?', help='Specify resolution')
+    parser.add_argument('resolution', default=defaultResolution, nargs='?', help='Specify resolution')
     return parser.parse_args()
 
 def getCounter(fn):
