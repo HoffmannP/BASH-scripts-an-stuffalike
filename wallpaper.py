@@ -1,17 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+""" 1680x1050 "spannen" vs 3360x1050 "einfach"  """
+
 from BeautifulSoup import BeautifulSoup as BS
-from urllib2 import urlopen, HTTPError
+import urllib2
 import argparse
 from tempfile import NamedTemporaryFile
 from subprocess import call
 from os import rename, path
 
+useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
+
 def parseArguments():
     parser = argparse.ArgumentParser(description='Change desktop wallpaper from http://interfacelift.com')
     parser.add_argument('-d', '--only-download', default=False, action='store_true', help='Only download wallpaper')
-    parser.add_argument('resolution', default='16:10', nargs='?', help='Specify resolution')
+    parser.add_argument('-k', '--desktop', default="Auto", nargs=1, help='Select the desktop environment')
+    # parser.add_argument('resolution', default='16:10', nargs='?', help='Specify resolution')
+    parser.add_argument('resolution', default='3360x1050', nargs='?', help='Specify resolution')
     return parser.parse_args()
 
 def getCounter(fn):
@@ -57,13 +63,15 @@ class opt:
 def optimalResolution(ratio):
     global counter
     global page
+    opener = urllib2.build_opener()
     while True:
         optimum = opt(ratio.split(':'))
         counter += 1
-        url = 'http://interfacelift.com/wallpaper/details/%d/' % counter
+        request = urllib2.Request('http://interfacelift.com/wallpaper/details/%d/' % counter)
+        request.add_header('User-Agent', useragent)
         try:
-            connection = urlopen(url)
-        except HTTPError:
+            connection = opener.open(request)
+        except urllib2.HTTPError:
             continue
         page = BS(connection)
         selectForm = page.find('select', 'select')
@@ -86,7 +94,9 @@ def imageBaseName():
     
 def download(url):
     file = NamedTemporaryFile(delete=False)
-    v = urlopen(url).read()
+    request = urllib2.Request(url)
+    request.add_header('User-Agent', useragent)
+    v = urllib2.build_opener().open(request).read()
     writtenbytes = len(v)
     file.write(v)
     file.close()
@@ -104,6 +114,10 @@ def whichDesktop(): # zur Zeit gnome2 und mate
 counterFile = '/home/ber/bin/wallpaper'
 counter = getCounter(counterFile)
 downloadPath = '/home/ber/Desktop/'
+
+args = parseArguments()
+size = 0
+
 desktopDependent = {
     'mate': {
         'Tool': '/usr/bin/mateconftool-2',
@@ -114,12 +128,18 @@ desktopDependent = {
         'Key':  '/desktop/gnome/background/picture_filename'
     }
 }
-Conf = desktopDependent[whichDesktop()]
-args = parseArguments()
-size = 0
+if args.desktop == 'Auto':
+    desktop = whichDesktop()
+else:
+    desktop = args.desktop
+Conf = desktopDependent[desktop]
 
 while size < 50*1024:
-    resolution = optimalResolution(args.resolution)
+    if args.resolution.find(':') == -1:
+        optimalResolution('1:1')
+        resolution = args.resolution
+    else:
+        resolution = optimalResolution(args.resolution)
     imageName = '%05d_%s_%s.jpg' % (counter, imageBaseName(), resolution)
     fileName, size = download('http://interfacelift.com/wallpaper/7yz4ma1/' + imageName)
 setCounter(counter, counterFile)
