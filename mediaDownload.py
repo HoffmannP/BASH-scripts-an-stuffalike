@@ -11,11 +11,10 @@ useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418
 
 def parseArguments():
 	parser = argparse.ArgumentParser(description='Video von Mediathek runterladen')
-	parser.add_argument('url', nargs='?', help='url der Sendungsseite')
+	parser.add_argument('url', nargs=1, help='url der Sendungsseite')
 	return parser.parse_args()
 
-args = parseArguments()
-url = args.url
+url = parseArguments().url
 
 def capitalize(string):
 	return (' ').join(part[0].upper() + part[1:] for part in string.split(' '))
