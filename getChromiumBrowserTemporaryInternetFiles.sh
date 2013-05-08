@@ -1,4 +1,3 @@
-#!/bin/bash
 
 user=$(whoami)
 chromepids=$(pgrep -u $user -f /usr/lib/chromium-browser/chromium-browser | tr -s ' ' "\t" | cut -f2 | tr [:cntrl:] ,)0
