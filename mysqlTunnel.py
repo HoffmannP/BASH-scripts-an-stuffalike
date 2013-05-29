@@ -7,31 +7,33 @@ import sys
 import csv
 import os.path
 import os
-
-port = 3306
-
-"""
-server.csv is a file containing in the first column your servers name (for
-your eyes) and the servers address (for your computer)
-"""
-ServerFile = 'server.csv'
+import time
+import gettext
 
 
-def getPid(call):
-    processes = tempfile.TemporaryFile()
-    subprocess.call(['ps', 'aux'], stdout=processes)
-    for process in processes:
-        parts = process.split(11)
-        if call in parts[11]:
-            return parts[1]
+def getPids(call):
+    mypid = os.getpid()
+    pids = []
+    for process in subprocess.check_output(['ps', 'x', '--noheaders']).split("\n"):
+        if process == '':
+            continue
+        parts = process.split(None, 4)
+        if not call in parts[4]:
+            continue
+        pid = int(parts[0])
+        if pid == mypid:
+            continue
+        pids.append(pid)
+    if len(pids) > 0:
+        return pids
     return False
 
 
 def processRunning(pid):
-    processes = tempfile.TemporaryFile()
-    subprocess.call(['ps', 'aux'], stdout=processes)
-    for process in processes:
-        if pid == process.split()[1]:
+    for process in subprocess.check_output(['ps', 'x', '--noheaders']).split("\n"):
+        if process == '':
+            continue
+        if pid == int(process.split()[0]):
             return True
     return False
 
@@ -42,11 +44,11 @@ def processName(pid):
 
 
 def usingPort(port):
-    processes = tempfile.TemporaryFile()
-    subprocess.call(['netstat', '-ptan'], stdout=processes, stderr=processes)
-    for process in processes:
+    for process in subprocess.check_output(['netstat', '-ptan'], stderr=file('/dev/null', 'w')).split("\n"):
+        if process == '':
+            continue
         parts = process.split()
-        if parts[3].split(':')[1] == port:
+        if len(parts) > 2 and ':' in parts[3] and parts[3].split(':')[1] == str(port):
             if parts[6] != '-':
                 pid, name = parts[6].split('/')
             else:
@@ -82,13 +84,19 @@ def zenity_list(text, header, optionen):
 
 
 def killprocess(pid):
-    subprocess.call(['kill', pid])
-    processes = tempfile.TemporaryFile()
-    subprocess.call(['ps', 'auxf'], stdout=processes)
-    return not processRunning(pid=pid)
+    try:
+        children = subprocess.check_output(['ps', '-o', 'pid', '--ppid', str(pid), '--noheaders']).split("\n")
+    except subprocess.CalledProcessError:
+        children = []
+    os.kill(pid, 15)
+    for child in children:
+        if child == '':
+            continue
+        killprocess(int(child))
+    return not processRunning(pid)
 
 
-def openTunnel(address):
+def openTunnel(address, port):
     return subprocess.call([
         '/usr/bin/ssh',
         '-c', 'blowfish',
@@ -96,56 +104,81 @@ def openTunnel(address):
         address
     ])
 
-# check if programm is already running
-pid = getPid('%d:localhost:%d' % (port, port))
-if pid is not False:
-    if zenity_yesno('Eine andere Instanz dieses Programms läuft bereits. \
-Soll diese beendet werden? (ansonsten wird diese Aktion abgebrochen'):
-        if not killprocess(pid):
-            zenity_info('still running')
+
+def readConfig(config):
+    selection = []
+    servers = {}
+    with file(os.path.dirname(__file__) + os.sep + config, 'rb') as f:
+        for line in csv.reader(f):
+            selection.append(['0', line[0]])
+            servers[line[0].strip()] = line[1].strip()
+    return (servers, selection)
+""" server.csv is a file containing in the first column your servers name
+(for your eyes) and the servers address (for your computer) """
+
+
+def checkRunning(programm):
+    pids = getPids(programm)
+    if not pids:
+        return
+    for pid in pids:
+        if not zenity_yesno(_('%s already running, kill?') % programm):
+            zenity_info(_('exiting'))
+            sys.exit(0)
+
+        killed = killprocess(pid)
+        if not killed:
+            zenity_info(_('failed to kill running %s, exiting') % programm)
             sys.exit(1)
-    else:
-        print zenity_info('exiting')
+
+
+def checkPortFree(port):
+    used = usingPort(port)
+    if not used:
+        return
+
+    if used['name'] is None:
+        zenity_info(_('port used, can\'t kill'))
+        sys.exit(2)
+
+    while (used['state'] == 'WAIT') and zenity_yesno(_('port used by "%s", wait for 5 secs?') % used['name']):
+        time.sleep(5)
+        used = usingPort(port)
+        if not used:
+            return
+
+    if not zenity_yesno(_('port used by "%s", kill?') % used['name']):
+        zenity_info(_('exiting'))
         sys.exit(0)
 
-# check if port is already used
-using = usingPort(port)
-
-if using is not False:
-    if 'WAIT' in using['state']:
-        zenity_info('Der Port %i wird zur Zeit noch von %s genutzt, bitte \
-später erneut versuchen' % (port, using['pid']))
-        sys.exit(1)
-
-    if using['pid'] is not None:
-        if zenity_yesno('Der Port %i ist bereits durch das Programm %s \
-belegt. Soll dieses beendet werden? (ansonsten wird diese Aktion abgebrochen)'
-                        % (port, using['name'])):
-            if not killprocess(pid):
-                zenity_info('still running')
-                sys.exit(2)
-        else:
-            zenity_info('exiting')
-            sys.exit(0)
-    else:
-        zenity_info('must be root (probably mysqld)')
-
-selection = []
-servers = {}
-ServerFile = os.path.dirname(__file__) + os.sep + ServerFile
-for line in csv.reader(file(ServerFile, 'rb')):
-    selection.append(['0', line[0]])
-    servers[line[0].strip()] = line[1].strip()
+    killed = killprocess(int(used['pid']))
+    if not killed:
+        zenity_info(_('failed to kill, exiting'))
+        sys.exit(3)
 
 
-server = zenity_list(
-    'MySQL Server auswählen',
-    ['✓', 'Server'],
-    selection).strip()
-if server is False or server == '':
-    zenity_info('Kein Server ausgewählt')
-    sys.exit(3)
+def selectServer(selection):
+    server = zenity_list(
+        _('select MySQL server'),
+        ['✓', _('server')],
+        selection)
+    if server is False or server.strip() == '':
+        zenity_info(_('no server selected'))
+        sys.exit(4)
+    return server.strip()
 
-while True:
-    code = openTunnel(servers[server])
-    zenity_info('Verbindung gestorben mit Code %d, verbinde neu…' % code)
+
+def main(port, serverFile):
+    servers, selection = readConfig(serverFile)
+    checkRunning(os.path.basename(__file__))
+    checkPortFree(port)
+    server = selectServer(selection)
+
+    openTunnel(servers[server], port)
+    while zenity_yesno(_('connection broke, reconnect?')):
+        openTunnel(servers[server], port)
+
+t = gettext.translation('mysqlTunnel', '/home/ber/bin')
+_ = t.lgettext
+if __name__ == '__main__':
+    main(port=3306, serverFile='server.csv')
