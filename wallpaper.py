@@ -8,13 +8,13 @@ import urllib2
 import argparse
 from tempfile import NamedTemporaryFile
 from subprocess import call
-from os import rename, path,popen3
-from sys import exit
+from os import rename, path, popen3
 
 useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
 
+
 def parseArguments():
-    fi,fo,fe = popen3('xdpyinfo  | grep dimensions | tr -s " " "\t" | cut -f3')
+    fi, fo, fe = popen3('xdpyinfo  | grep dimensions | tr -s " " "\t" | cut -f3')
     defaultResolution = fo.read()[:-1]
     parser = argparse.ArgumentParser(description='Change desktop wallpaper from http://interfacelift.com')
     parser.add_argument('-d', '--only-download', default=False, action='store_true', help='Only download wallpaper')
@@ -22,6 +22,7 @@ def parseArguments():
     # parser.add_argument('resolution', default='16:10', nargs='?', help='Specify resolution')
     parser.add_argument('resolution', default=defaultResolution, nargs='?', help='Specify resolution')
     return parser.parse_args()
+
 
 def getCounter(fn):
     try:
@@ -32,13 +33,16 @@ def getCounter(fn):
         c = 1
     return c
 
+
 def setCounter(counter, fn):
     file = open(fn, 'w')
-    c = file.write(str(counter))
+    file.write(str(counter))
     file.close()
+
 
 def mean(a, b):
     return (a+b)/2
+
 
 class opt:
     abw = 999999
@@ -47,19 +51,23 @@ class opt:
     rY = 1
     x = 1
     y = 1
+
     def __init__(self, list):
         self.x, self.y = int(list[0]), int(list[1])
+
     def find(self, resolution):
         found = opt(resolution)
         found.size = mean(found.x/self.x, found.y/self.y)
-        found.abw  = abs(self.x-float(found.x)/found.size) * abs(self.y-float(found.y)/found.size)
+        found.abw = abs(self.x-float(found.x)/found.size) * abs(self.y-float(found.y)/found.size)
         if (found.abw < self.abw) or ((found.abw - self.abw < 1e-05) and (found.size > self.size)):
             self.abw = found.abw
             self.size = found.size
             self.rX = found.x
             self.rY = found.y
+
     def val(self):
-        return '%sx%s' % (self.rX, self.rY) 
+        return '%sx%s' % (self.rX, self.rY)
+
 
 # da nicht jede Nummer einem Hintergrundbild entspricht wird
 # solange gesucht bis eine Nummber gefunden wird die passt
@@ -78,7 +86,7 @@ def optimalResolution(ratio):
             continue
         page = BS(connection)
         selectForm = page.find('select', 'select')
-        if selectForm == None:
+        if selectForm is None:
             continue
         options = selectForm.findAll('option')
         for option in options:
@@ -89,12 +97,14 @@ def optimalResolution(ratio):
         break
     return optimum.val()
 
+
 def imageBaseName():
-    preview = page.find('div', 'preview')
+    preview = page.find('div', 'preview')  # globale Variable
     image = preview.find('a').find('img')
     image_name = image['src'].split('/')[-1]
     return image_name.split('_')[-1].split('.')[0]
-    
+
+
 def download(url):
     file = NamedTemporaryFile(delete=False)
     request = urllib2.Request(url)
@@ -105,9 +115,13 @@ def download(url):
     file.close()
     return file.name, writtenbytes
 
-def whichDesktop(): # zur Zeit gnome2 und mate
+
+def whichDesktop():  # zur Zeit gnome2, mate und mate16
     isMate = path.isfile('/usr/bin/mateconftool-2')
+    isMate16 = path.isfile('/usr/bin/gsettings')
     isGnome = path.isfile('/usr/bin/gconftool-2')
+    if isMate16:
+        return 'mate16'
     if isMate:
         return 'mate'
     if isGnome:
@@ -122,20 +136,33 @@ args = parseArguments()
 size = 0
 
 desktopDependent = {
-    'mate': {
-        'Tool': '/usr/bin/mateconftool-2',
-        'Key':  '/desktop/mate/background/picture_filename'
-    },
-    'gnome2': {
-        'Tool': '/usr/bin/gconftool-2',
-        'Key':  '/desktop/gnome/background/picture_filename'
-    }
+    'mate16': [
+        '/usr/bin/gsettings',
+        'set',
+        'org.mate.background',
+        'picture-filename',
+        '%s'
+    ],
+    'mate': [
+        '/usr/bin/mateconftool-2',
+        '-s',
+        '/desktop/mate/background/picture_filename',
+        '--type=string',
+        '%s'
+    ],
+    'gnome2': [
+        '/usr/bin/gconftool-2',
+        '-s',
+        '/desktop/gnome/background/picture_filename'
+        '--type=string',
+        '%s'
+    ]
 }
 if args.desktop == 'Auto':
     desktop = whichDesktop()
 else:
     desktop = args.desktop
-Conf = desktopDependent[desktop]
+command = ' '.join(desktopDependent[desktop])
 
 while size < 50*1024:
     if args.resolution.find(':') == -1:
@@ -150,12 +177,4 @@ setCounter(counter, counterFile)
 if args.only_download:
     rename(fileName, downloadPath + imageName)
 else:
-    call([
-            Conf['Tool'],
-            '-s',
-            Conf['Key'],
-            '--type=string',
-            fileName
-        ])
-
-    
+    call((command % (fileName)).split())
