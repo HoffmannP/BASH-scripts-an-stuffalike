@@ -57,3 +57,7 @@ Convert a heise feed into a full text feed
 
 ## IPupdate ##
 fetch my ip adress on a regular basis and update it on my home server
+
+## TchiboChecker ##
+checks the tchibo-Page for a product in a special size and sends a mail product is available
+
