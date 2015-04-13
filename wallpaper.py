@@ -11,20 +11,23 @@ from subprocess import call
 
 wallpaperPrefix = '/tmp/wallpaper'
 sfx = '.jpg'
-baseUrl = 'http://wallpaperswide.com/'
+baseUrl = 'http://wallpaperswide.com'
 resolution = '1680x1050'
 callSetting = ['/usr/bin/gsettings', 'set', 'org.mate.background', 'picture-filename']
 useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
 
+
 def maxPage():
-    request = get(baseUrl + resolution + '-wallpapers-r.html')
+    request = get(baseUrl + '/' + resolution + '-wallpapers-r.html')
     page = bs4(request.text, "lxml")
     return int(page.select('div.pagination a')[5].text)
 
+
 def imageSelect():
-    url = baseUrl + resolution + '-wallpapers-r/page/' + str(rnd(1, maxPage()))
+    url = baseUrl + '/' + resolution + '-wallpapers-r/page/' + str(rnd(1, maxPage()))
     page = bs4(get(url).text, "lxml")
     return page.select('li.wall div.thumb a')[2*rnd(0, 9)]['href']
+
 
 def getReferer(url, referer):
     session = Session()
@@ -34,10 +37,23 @@ def getReferer(url, referer):
     })
     return session.get(url)
 
+
+def categorieIgnore(url, ignoreCategories):
+    page = bs4(get(url).text, "lxml")
+    categories = page.select('#content ul')[1].select('a')
+    for categorie in categories:
+        if categorie.get_text().split('/')[0] in ignoreCategories:
+            return True
+    return False
+
+
 def setWallpaper():
-    page = imageSelect()
-    urlPage = baseUrl + page
-    urlImage = baseUrl + 'download' + page[:-len('s.html')] + '-' + resolution + sfx
+    while True:
+        page = imageSelect()
+        urlPage = baseUrl + page
+        if not categorieIgnore(urlPage, ['Models', 'Girls', 'Cute', 'Motors']):
+            break
+    urlImage = baseUrl + '/download' + page[:-len('s.html')] + '-' + resolution + sfx
     fileName = wallpaperPrefix + str(rnd(0, 1E5)) + sfx
     with open(fileName, 'w') as f:
         f.write(getReferer(urlImage, urlPage).content)
