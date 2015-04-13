@@ -13,8 +13,11 @@ wallpaperPrefix = '/tmp/wallpaper'
 sfx = '.jpg'
 baseUrl = 'http://wallpaperswide.com'
 resolution = '1680x1050'
-callSetting = ['/usr/bin/gsettings', 'set', 'org.mate.background', 'picture-filename']
-useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
+desktop = 'cinnamon'
+callSetting = {
+    'mate': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.mate.background', 'picture-filename', fn]),
+    'cinnamon': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.cinnamon.desktop.background', 'picture-uri', 'file://' + fn])
+}
 
 
 def maxPage():
@@ -30,6 +33,7 @@ def imageSelect():
 
 
 def getReferer(url, referer):
+    useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
     session = Session()
     session.headers.update({
         'referer': referer,
@@ -56,8 +60,8 @@ def setWallpaper():
     urlImage = baseUrl + '/download' + page[:-len('s.html')] + '-' + resolution + sfx
     fileName = wallpaperPrefix + str(rnd(0, 1E5)) + sfx
     with open(fileName, 'w') as f:
-        f.write(getReferer(urlImage, urlPage).content)
-    call(callSetting + [fileName])
+         f.write(getReferer(urlImage, urlPage).content)
+    callSetting[desktop](fileName)
 
 if __name__ == '__main__':
     setWallpaper()
