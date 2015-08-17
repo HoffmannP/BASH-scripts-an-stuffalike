@@ -55,7 +55,7 @@ def setWallpaper():
     while True:
         page = imageSelect()
         urlPage = baseUrl + page
-        if not categorieIgnore(urlPage, ['Models', 'Girls', 'Cute', 'Motors']):
+        if not categorieIgnore(urlPage, ['Models', 'Girls', 'Cute', 'Motors', 'Celebrities', 'Games']):
             break
     urlImage = baseUrl + '/download' + page[:-len('s.html')] + '-' + resolution + sfx
     fileName = wallpaperPrefix + str(rnd(0, 1E5)) + sfx
