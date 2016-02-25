@@ -9,7 +9,7 @@ from random import randint as rnd
 from subprocess import call
 
 
-wallpaperPrefix = '/tmp/wallpaper'
+wallpaperPrefix = '/home/ber/.wallpaper'
 sfx = '.jpg'
 baseUrl = 'http://wallpaperswide.com'
 resolution = '1680x1050'

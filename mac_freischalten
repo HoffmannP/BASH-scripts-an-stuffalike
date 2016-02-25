@@ -1,0 +1,20 @@
+#!/bin/sh
+
+MAXTIME=2000000000
+chain="splash_db_$(cat /tmp/splash_chain_id)_meshfsm"
+
+echo -n "Please provide MAC: "; read mac
+
+splashId=$(cat /tmp/splash_chain_id)
+for iface in $(uci -q get splash.settings.interfaces); do
+	iptables -t nat -I splash_db_${splashId}_${iface} 1 -m mac --mac-source $mac -j ACCEPT
+done
+
+if [ $(uci show splash_users | grep -c $mac) -eq 0 ]; then
+	uci -q add splash_users user >/dev/null
+	uci -q set splash_users.@user[-1].mac=$mac
+	uci -q set splash_users.@user[-1].time=$MAXTIME
+else
+	id=$(uci show splash_users | grep -m 1 $mac | cut -d'[' -f2 | cut -d ']' -f1)
+	uci -q set splash_users.@user[$id].time=$MAXTIME
+fi
