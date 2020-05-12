@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """ 1680x1050 "spannen" vs 3360x1050 "einfach"  """
@@ -86,7 +86,7 @@ def set_wallpaper():
     url_image = BASE_URL + '/download' + page[:-len('s.html')] + '-' + RESOLUTION + SFX
     file_name = WALLPAPER_PREFIX + str(rnd(0, 1E5)) + SFX
     with open(file_name, 'w') as fi:
-        fi.write(get_referer(url_image, url_page).content)
+        fi.buffer.write(get_referer(url_image, url_page).content)
     CALL_SETTING[DESKTOP](file_name)
 
 if __name__ == '__main__':
