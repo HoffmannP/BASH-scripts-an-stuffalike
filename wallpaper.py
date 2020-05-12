@@ -12,7 +12,7 @@ from requests import get, Session
 WALLPAPER_PREFIX = '/home/ber/.wallpaper'
 SFX = '.jpg'
 BASE_URL = 'http://wallpaperswide.com'
-RESOLUTION = '1680x1050'
+RESOLUTION = '3840x1080'
 DESKTOP = 'cinnamon'
 CALL_SETTING = {
     'mate': lambda fn: call([
