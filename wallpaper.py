@@ -45,7 +45,7 @@ def max_page():
     """ number of current pages """
     request = get(BASE_URL + '/' + RESOLUTION + '-wallpapers-r.html')
     page = bs4(request.text, "lxml")
-    return int(page.select('div.pagination a')[5].text)
+    return int(page.select('div.pagination a')[1].text)
 
 def image_select():
     """ randomly return a image url """
@@ -88,6 +88,7 @@ def set_wallpaper():
     with open(file_name, 'w') as fi:
         fi.buffer.write(get_referer(url_image, url_page).content)
     CALL_SETTING[DESKTOP](file_name)
+
 
 if __name__ == '__main__':
     set_wallpaper()
