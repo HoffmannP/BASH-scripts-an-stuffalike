@@ -9,12 +9,8 @@ import locale
 import subprocess
 import camelot
 
-CLIENT_ID = 103193
-CLIENT_PW = ''
-CLASS_NAME = '6c'
+CONFIG_FILE = '~/.config/newspoint_config.json'
 LAST_CHANGE_FILE = '~/.config/newspoint_lastchange.json'
-SINGAL_TARGET = ['-g', 'B1xWwtduKuDwwYGrGr0XSZwljyraWFJH6MegAhoaBD8=']
-
 
 def main():
     last_change_file_name = os.path.expanduser(LAST_CHANGE_FILE)
@@ -46,7 +42,7 @@ def main():
         json.dump(last_change, f)
     result = printVertretungsplan(inhalte)
     if result is not None:
-        sendSignalTo(SINGAL_TARGET, result)
+        sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
 
 def readVertretungsplan(url):
     response = requests.get(url)
@@ -71,16 +67,28 @@ def printVertretungsplan(inhalte):
         return None
     return '\n'.join(lines).strip()
 
-def sendSignalTo(number, send_text):
+def sendSignalTo(account, target, send_text):
     subprocess.run([
-        '/home/ber/Downloads/signal-cli-0.9.2/bin/signal-cli',
-        '-u', '+491715761382',
+        'signal-cli',
+        '-u', account,
         'send',
-        *number],
+        *target],
         input=send_text,
         text=True,
+        check=True,
         stdout=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':
+    try:
+        with open(os.path.expanduser(CONFIG_FILE)) as f:
+            config = json.load(f)
+            CLIENT_ID = config['client']['id']
+            CLIENT_PW = config['client']['password']
+            CLASS_NAME = config['classname']
+            SIGNAL_ACCOUNT = config['signal']['account']
+            SINGAL_TARGET = config['signal']['target']
+    except (FileNotFoundError, json.decoder.JSONDecodeError, IndexError) as error:
+        print(error)
+        os.exit(1)
     main()
