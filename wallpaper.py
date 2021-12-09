@@ -1,94 +1,106 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-""" 1680x1050 "spannen" vs 3360x1050 "einfach"  """
-
-from subprocess import call
-from random import randint as rnd
 from bs4 import BeautifulSoup as bs4
-from requests import get, Session
+from requests import get, post, cookies
+from random import randint as rnd
+from subprocess import call
+
+desktop = 'cinnamon'
+resolution = '3840x1080' # zwei Monitore á 1920x1080
+category = 'Nature'
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/62.0.3202.75 Chrome/62.0.3202.75 Safari/537.36'
+
+"""
+Ab hier nichts mehr ändern
+"""
 
 
-WALLPAPER_PREFIX = '/home/ber/.wallpaper'
-SFX = '.jpg'
-BASE_URL = 'http://wallpaperswide.com'
-RESOLUTION = '3840x1080'
-DESKTOP = 'cinnamon'
-CALL_SETTING = {
-    'mate': lambda fn: call([
-        '/usr/bin/gsettings',
-        'set',
-        'org.mate.background',
-        'picture-filename',
-        fn]),
-    'cinnamon': lambda fn: call([
-        '/usr/bin/gsettings',
-        'set',
-        'org.cinnamon.desktop.background',
-        'picture-uri',
-        'file://' + fn])
+class Browser:
+	def __init__(self, userAgent=USER_AGENT, **kwargs):
+		self.jar = cookies.RequestsCookieJar()
+		self.header = kwargs
+		self.header['user-agent'] = userAgent
+
+	def addCookie(self, name, value):
+		self.jar.set(name, value)
+
+	def load(self, response):
+		return bs4(response.text, "lxml")
+
+	def get(self, url):
+		result = get(url, cookies=self.jar, headers=self.header)
+		self.jar.update(result.cookies)
+		return self.load(result)
+
+	def post(self, url, data):
+		result = post(url, data=data, cookies=self.jar, headers=self.header)
+		self.jar.update(result.cookies)
+		return self.load(result)
+
+	def raw(self, url):
+		return get(url, cookies=self.jar, headers=self.header).content
+
+
+class WallpapersWide:
+	def __init__(self, resolution, category):
+		self.domain = 'http://wallpaperswide.com/'
+		self.category = category.lower().replace(' ', '_')
+		self.resolution = resolution
+		self.browser = Browser(referer=self.domain + self.category + '-desktop-wallpapers.html')
+		self.setResolution(resolution)
+
+	def setResolution(self, resolution):
+		self.browser.addCookie('PHPSESSID', '98b95c900e96141d2501763b834fc10a')
+		self.browser.addCookie('rrFilter', '1')
+		self.browser.post(
+			self.domain + 'setfilter.html', data={'flt_res': resolution})
+
+	def maxPage(self):
+		return int(self.browser.get(
+			self.domain + self.category + '-desktop-wallpapers.html').select(
+			'div.pagination a')[-2].text)
+
+	def getImage(self, link):
+		identifier = link.split('/')[1].split('-')[0]
+		return {
+			'site': self.domain + identifier,
+			'url': self.domain + 'download/' + identifier + '-wallpaper-' + self.resolution + '.jpg',
+			'identifier': identifier
+		}
+
+	def randomImage(self):
+		return self.getImage(self.browser.get(
+			self.domain + self.category + '-desktop-wallpapers/page/' + str(rnd(1, self.maxPage()))).select(
+			'li.wall div.thumb a')[2*rnd(0, 9)]['href'])
+
+def download(uri, filename):
+	browser = Browser()
+	with open(filename, 'w') as f:
+		f.buffer.write(browser.raw(uri))
+
+def buildThreeDisplayWallpaper(original):
+	thirdScreen="1024x1280"
+	combined = original[:-4] + "_fullBackground.jpg"
+	call([
+		"/usr/bin/convert",
+		original, "-background", "black",
+		"(", original, "-resize", "%s^" % thirdScreen,
+		"-gravity", "center", "-extent",  thirdScreen, ")",
+		"-gravity", "North", "+append",
+		combined])
+	return combined
+
+
+setWallpaperFuncion = {
+	'mate': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.mate.background', 'picture-filename', fn]),
+	'cinnamon': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.cinnamon.desktop.background', 'picture-uri', 'file://' + fn])
 }
-IGNORED_CATEGORIES = [
-    'Aero',
-    'Army',
-    'Funny',
-    'Movies',
-    'Models',
-    'Girls',
-    'Cute',
-    'Motors',
-    'Celebrities',
-    'Games',
-    'Sports']
-
-def max_page():
-    """ number of current pages """
-    request = get(BASE_URL + '/' + RESOLUTION + '-wallpapers-r.html')
-    page = bs4(request.text, "lxml")
-    return int(page.select('div.pagination a')[1].text)
-
-def image_select():
-    """ randomly return a image url """
-    url = BASE_URL + '/' + RESOLUTION + '-wallpapers-r/page/' + str(rnd(1, max_page()))
-    page = bs4(get(url).text, "lxml")
-    return page.select('li.wall div.thumb a')[2*rnd(0, 9)]['href']
-
-
-def get_referer(url, referer):
-    """ creates the referer object """
-    useragent = 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14)'+\
-    ' Gecko/20080418 Ubuntu/7.10 (gutsy) Firefox/2.0.0.14'
-    session = Session()
-    session.headers.update({
-        'referer': referer,
-        'user-agent': useragent
-    })
-    return session.get(url)
-
-
-def categorie_ignore(url, ignore_categories):
-    """ ignores defined categories of wallappers  """
-    page = bs4(get(url).text, "lxml")
-    categories = page.select('#content ul')[1].select('a')
-    for categorie in categories:
-        if categorie.get_text().split('/')[0] in ignore_categories:
-            return True
-    return False
-
-
-def set_wallpaper():
-    """main function to randomly set the wallpaper without ignored categories"""
-    while True:
-        page = image_select()
-        url_page = BASE_URL + page
-        if not categorie_ignore(url_page, IGNORED_CATEGORIES):
-            break
-    url_image = BASE_URL + '/download' + page[:-len('s.html')] + '-' + RESOLUTION + SFX
-    file_name = WALLPAPER_PREFIX + str(rnd(0, 1E5)) + SFX
-    with open(file_name, 'w') as fi:
-        fi.buffer.write(get_referer(url_image, url_page).content)
-    CALL_SETTING[DESKTOP](file_name)
-
 
 if __name__ == '__main__':
-    set_wallpaper()
+	wallpaperSite = WallpapersWide(resolution, category)
+	imageInfo = wallpaperSite.randomImage()
+	localImageFile = '/tmp/wallpaper-' + imageInfo['identifier'] + '.jpg'
+	download(imageInfo['url'], localImageFile)
+	threeDisplayWallpaper = buildThreeDisplayWallpaper(localImageFile)
+	setWallpaperFuncion[desktop](threeDisplayWallpaper)

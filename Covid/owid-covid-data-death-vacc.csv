@@ -1,0 +1,89 @@
+continent;location;new_deaths_per_week_per_100000;people_fully_vaccinated_per_hundred
+Asia;Afghanistan;0.02275;8.95
+Africa;Algeria;0.0862313;12.06
+South America;Argentina;0.274356;66.36
+Oceania;Australia;0.2002;73.71
+Europe;Austria;4.08813;66.92
+Asia;Azerbaijan;1.66044;44.93
+Asia;Bangladesh;0.0165;22.74
+Europe;Belarus;1.13973;28.72
+Europe;Belgium;3.60451;74.9
+South America;Bolivia;0.787285;35.41
+South America;Brazil;0.667669;63.98
+Europe;Bulgaria;10.962;26.14
+Asia;Cambodia;0.178106;79.16
+North America;Canada;0.331056;76.44
+South America;Chile;0.960969;84.43
+South America;Colombia;0.654544;49.1
+North America;Costa Rica;0.923222;62.56
+Europe;Croatia;11.1475;48.49
+North America;Cuba;0.11739;82.0
+Europe;Czechia;8.3267;59.82
+Europe;Denmark;1.13627;76.78
+North America;Dominican Republic;0.205956;51.31
+Africa;Egypt;0.384344;14.88
+North America;El Salvador;0.2838;62.61
+Africa;Ethiopia;0.0511437;1.23
+Europe;Finland;1.75053;73.07
+Europe;France;0.735613;70.01
+Asia;Georgia;10.9052;25.6
+Europe;Germany;2.15408;68.39
+Europe;Greece;6.01996;64.25
+North America;Guatemala;0.393138;22.88
+Europe;Hungary;17.0165;60.9
+Asia;India;0.27426;34.26
+Asia;Indonesia;0.0242812;35.83
+Asia;Iran;0.75425;56.63
+Asia;Iraq;0.273088;11.47
+Asia;Israel;0.342491;62.23
+Europe;Italy;0.806663;73.14
+Asia;Japan;0.0102667;77.5
+Asia;Jordan;2.04955;36.77
+Asia;Kazakhstan;0.99491;43.05
+Asia;Kyrgyzstan;0.264206;13.79
+Asia;Laos;0.52185;42.0
+Asia;Lebanon;1.03404;25.27
+Africa;Libya;0.990554;9.58
+Asia;Malaysia;0.903613;77.56
+Africa;Mali;0.0723692;1.54
+Africa;Mauritania;0.317567;14.33
+North America;Mexico;1.5995;50.22
+Europe;Moldova;5.01217;23.48
+Asia;Mongolia;1.47187;64.68
+Africa;Morocco;0.0432385;60.96
+Asia;Myanmar;0.112525;21.19
+Asia;Nepal;0.0738733;28.43
+Europe;Netherlands;1.97186;74.08
+Africa;Niger;0.0800625;1.85
+Europe;Norway;1.7199;70.45
+Asia;Pakistan;0.0237562;23.23
+Asia;Palestine;0.595544;26.15
+North America;Panama;0.294808;55.63
+South America;Paraguay;1.18314;37.45
+South America;Peru;0.757925;55.69
+Asia;Philippines;1.05901;34.37
+Europe;Poland;6.10698;54.29
+Europe;Portugal;1.01977;88.56
+Europe;Romania;5.66094;39.25
+Europe;Russia;5.74337;40.23
+Asia;Saudi Arabia;0.0272125;64.01
+Europe;Serbia;5.10619;45.65
+Europe;Slovakia;8.37222;43.03
+Africa;South Africa;0.294394;24.9
+Asia;South Korea;0.590427;80.58
+Europe;Spain;0.52262;80.55
+Asia;Sri Lanka;0.763087;64.03
+Europe;Sweden;0.5906;70.66
+Europe;Switzerland;1.33442;65.59
+Asia;Syria;0.214667;4.04
+Asia;Thailand;0.441;59.66
+Africa;Tunisia;0.26194;43.96
+Asia;Turkey;1.63804;59.56
+Europe;Ukraine;8.63896;27.21
+Europe;United Kingdom;1.21686;68.21
+North America;United States;2.25921;59.47
+South America;Uruguay;0.4018;76.33
+South America;Venezuela;0.22135;34.34
+Asia;Vietnam;1.19525;54.69
+Asia;Yemen;0.0397091;1.19
+Africa;Zimbabwe;0.0636125;19.11
