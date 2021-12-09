@@ -11,8 +11,7 @@ import camelot
 
 CLIENT_ID = 103193
 CLIENT_PW = ''
-# CLASS_NAME = '6c'
-CLASS_NAME = '7c'
+CLASS_NAME = '6c'
 LAST_CHANGE_FILE = '~/.config/newspoint_lastchange.json'
 SINGAL_TARGET = ['-g', 'B1xWwtduKuDwwYGrGr0XSZwljyraWFJH6MegAhoaBD8=']
 
