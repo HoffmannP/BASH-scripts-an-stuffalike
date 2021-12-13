@@ -7,7 +7,9 @@ import tempfile
 import os
 import locale
 import subprocess
-import camelot
+import math
+# import camelot
+import tabula
 
 CONFIG_FILE = '~/.config/newspoint_config.json'
 LAST_CHANGE_FILE = '~/.config/newspoint_lastchange.json'
@@ -36,7 +38,7 @@ def main():
             continue
         inhalte[date] = {
             'change': change,
-            'eintraege': [row for row in readVertretungsplan(vertretungsplan['downloadUrl']) if CLASS_NAME in row[2]]}
+            'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if CLASS_NAME in row[1]]}
         last_change[date_ts] = change.timestamp()
     with open(last_change_file_name, 'w') as f:
         json.dump(last_change, f)
@@ -49,9 +51,30 @@ def readVertretungsplan(url):
     filename = tempfile.mkstemp(suffix='.pdf')[1]
     with open(filename, 'wb') as tmp:
         tmp.write(response.content)
-    tables = camelot.read_pdf(filename,pages='all')
+    tables = tabula.read_pdf(filename, pages='all')
     os.unlink(filename)
-    return [[cell.replace('\n', ' ') for cell in row] for table in tables for row in table.data[1:]]
+    table = []
+    table_list = [t.values.tolist() for t in tables][0]
+    last_row = table_list[1][1:]
+    for row in table_list[2:]:
+        if isinstance(row[1], float) and math.isnan(row[1]):
+            for i in range(len(last_row)):
+                if not isinstance(row[i+1], float) or not math.isnan(row[i+1]):
+                    last_row[i] = f'{last_row[i]} {row[i+1]}'
+        else:
+            table.append(last_row)
+            last_row = row[1:]
+    table.append(last_row)
+    return table
+
+#def readVertretungsplan(url):
+#    response = requests.get(url)
+#    filename = tempfile.mkstemp(suffix='.pdf')[1]
+#    with open(filename, 'wb') as tmp:
+#        tmp.write(response.content)
+#    tables = camelot.read_pdf(filename, pages='all')
+#    os.unlink(filename)
+#    return [[cell.replace('\n', ' ') for cell in row] for table in tables for row in table.data[1:]]
 
 def printVertretungsplan(inhalte):
     lines = []
@@ -59,9 +82,9 @@ def printVertretungsplan(inhalte):
         inhalt = inhalte[date]
         if len(inhalt['eintraege']) == 0:
             continue
-        lines.append(f'Vertretungsplan für {date.strftime("%A, den %x")} (letzte Aktualiserung von {inhalt["change"].strftime("%c")})')
-        for line in inhalt['eintraege']:
-            lines.append('\t'.join(line))
+        lines.append(f'Vertretungsplan für {date.strftime("%A, den %x")} (Aktualisierung von {inhalt["change"].strftime("%c")})')
+        for stunde, fach, ausfLehr, ersatzLehr, notiz in inhalt['eintraege']:
+            lines.append(f'{stunde} {fach} ({ausfLehr} → {ersatzLehr}): {notiz}')
         lines.append('')
     if len(lines) == 0:
         return None
