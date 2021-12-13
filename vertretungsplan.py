@@ -38,11 +38,12 @@ def main():
             continue
         inhalte[date] = {
             'change': change,
-            'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if CLASS_NAME in row[1]]}
+            'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in row[1] for cn in CLASS_NAME)]}
         last_change[date_ts] = change.timestamp()
     with open(last_change_file_name, 'w') as f:
         json.dump(last_change, f)
     result = printVertretungsplan(inhalte)
+    print(result)
     if result is not None:
         sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
 
@@ -58,9 +59,9 @@ def readVertretungsplan(url):
     last_row = table_list[1][1:]
     for row in table_list[2:]:
         if isinstance(row[1], float) and math.isnan(row[1]):
-            for i in range(len(last_row)):
+            for i, last in enumerate(last_row):
                 if not isinstance(row[i+1], float) or not math.isnan(row[i+1]):
-                    last_row[i] = f'{last_row[i]} {row[i+1]}'
+                    last_row[i] = f'{last} {row[i+1]}'
         else:
             table.append(last_row)
             last_row = row[1:]
@@ -84,7 +85,10 @@ def printVertretungsplan(inhalte):
             continue
         lines.append(f'Vertretungsplan für {date.strftime("%A, den %x")} (Aktualisierung von {inhalt["change"].strftime("%c")})')
         for stunde, fach, ausfLehr, ersatzLehr, notiz in inhalt['eintraege']:
-            lines.append(f'{stunde} {fach} ({ausfLehr} → {ersatzLehr}): {notiz}')
+            if isinstance(ersatzLehr, float) and math.isnan(ersatzLehr):
+                lines.append(f'{stunde} {fach} ({ausfLehr}): {notiz}')
+            else:
+                lines.append(f'{stunde} {fach} ({ausfLehr} → {ersatzLehr}): {notiz}')
         lines.append('')
     if len(lines) == 0:
         return None
