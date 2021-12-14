@@ -8,7 +8,6 @@ import os
 import locale
 import subprocess
 import math
-# import camelot
 import tabula
 
 CONFIG_FILE = '~/.config/newspoint_config.json'
@@ -43,7 +42,6 @@ def main():
     with open(last_change_file_name, 'w') as f:
         json.dump(last_change, f)
     result = printVertretungsplan(inhalte)
-    print(result)
     if result is not None:
         sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
 
@@ -68,15 +66,6 @@ def readVertretungsplan(url):
     table.append(last_row)
     return table
 
-#def readVertretungsplan(url):
-#    response = requests.get(url)
-#    filename = tempfile.mkstemp(suffix='.pdf')[1]
-#    with open(filename, 'wb') as tmp:
-#        tmp.write(response.content)
-#    tables = camelot.read_pdf(filename, pages='all')
-#    os.unlink(filename)
-#    return [[cell.replace('\n', ' ') for cell in row] for table in tables for row in table.data[1:]]
-
 def printVertretungsplan(inhalte):
     lines = []
     for date in inhalte:
@@ -96,7 +85,7 @@ def printVertretungsplan(inhalte):
 
 def sendSignalTo(account, target, send_text):
     subprocess.run([
-        'signal-cli',
+        '/usr/local/bin/signal-cli',
         '-u', account,
         'send',
         *target],
