@@ -13,6 +13,9 @@ import tabula
 CONFIG_FILE = '~/.config/newspoint_config.json'
 LAST_CHANGE_FILE = '~/.config/newspoint_lastchange.json'
 
+def isNaN(variable):
+    return isinstance(variable, float) and math.isnan(variable)
+
 def main():
     last_change_file_name = os.path.expanduser(LAST_CHANGE_FILE)
     locale.setlocale(locale.LC_ALL, ('de_DE', 'UTF-8'))
@@ -42,6 +45,7 @@ def main():
     with open(last_change_file_name, 'w') as f:
         json.dump(last_change, f)
     result = printVertretungsplan(inhalte)
+    print(result)
     if result is not None:
         sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
 
@@ -52,18 +56,21 @@ def readVertretungsplan(url):
         tmp.write(response.content)
     tables = tabula.read_pdf(filename, pages='all')
     os.unlink(filename)
+
     table = []
-    table_list = [t.values.tolist() for t in tables][0]
-    last_row = table_list[1][1:]
-    for row in table_list[2:]:
-        if isinstance(row[1], float) and math.isnan(row[1]):
-            for i, last in enumerate(last_row):
-                if not isinstance(row[i+1], float) or not math.isnan(row[i+1]):
-                    last_row[i] = f'{last} {row[i+1]}'
+    table_list = [t.values.tolist() for t in tables]
+    rows = [row for table in table_list for row in table]
+
+    previous_row = rows[1][1:]
+    for row in rows[2:]:
+        if isNaN(row[1]):
+            for i, last in enumerate(previous_row):
+                if not isNaN(row[i+1]):
+                    previous_row[i] = f'{last} {row[i+1]}'
         else:
-            table.append(last_row)
-            last_row = row[1:]
-    table.append(last_row)
+            table.append(previous_row)
+            previous_row = row[1:]
+    table.append(previous_row)
     return table
 
 def printVertretungsplan(inhalte):
@@ -74,10 +81,10 @@ def printVertretungsplan(inhalte):
             continue
         lines.append(f'Vertretungsplan für {date.strftime("%A, den %x")} (Aktualisierung von {inhalt["change"].strftime("%c")})')
         for stunde, fach, ausfLehr, ersatzLehr, notiz in inhalt['eintraege']:
-            if isinstance(ersatzLehr, float) and math.isnan(ersatzLehr):
-                lines.append(f'{stunde} {fach} ({ausfLehr}): {notiz}')
-            else:
-                lines.append(f'{stunde} {fach} ({ausfLehr} → {ersatzLehr}): {notiz}')
+            fachString = '' if isNaN(fach) else f' {fach}'
+            ersatzLehrerString = '' if isNaN(ersatzLehr) else f' → {ersatzLehr}'
+            ausfLehrerString = ersatzLehrerString if isNaN(ausfLehr) else f' ({ausfLehr}{ersatzLehrerString})'
+            lines.append(f'{stunde}{fachString}{ausfLehrerString}: {notiz}')
         lines.append('')
     if len(lines) == 0:
         return None
