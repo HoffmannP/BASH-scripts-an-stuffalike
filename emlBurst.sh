@@ -36,6 +36,10 @@ for ((file=2; file<$files; file++)) {
     then
         continue
     fi
+    if [[ ${filename:0:9} == "-utf-8-B-" ]]
+    then
+        filename="$(echo ${filename:9:${#filename}-10} | base64 -d)"
+    fi
     filename=$(basename "$filename") # only for security
     cat $attachment |\
         awk 'BEGIN{ head=1 }{ if (head == 0) { if (length($0) < 2) { head=1 } else { print $0 } } else { if (length($0) < 2) { head=0 } } }' |\
