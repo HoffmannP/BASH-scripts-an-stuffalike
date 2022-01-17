@@ -38,14 +38,17 @@ def main():
             continue
         if date_ts in last_change and datetime.datetime.fromtimestamp(last_change[date_ts]) >= change:
             continue
-        inhalte[date] = {
-            'change': change,
-            'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in row[1] for cn in CLASS_NAME)]}
+        try:
+            inhalte[date] = {
+                'change': change,
+                'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in row[1] for cn in CLASS_NAME)]}
+        except TypeError as e:
+            print(readVertretungsplan(vertretungsplan['downloadUrl']))
+            raise e
         last_change[date_ts] = change.timestamp()
     with open(last_change_file_name, 'w') as f:
         json.dump(last_change, f)
     result = printVertretungsplan(inhalte)
-    print(result)
     if result is not None:
         sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
 
@@ -111,7 +114,11 @@ if __name__ == '__main__':
             CLASS_NAME = config['classname']
             SIGNAL_ACCOUNT = config['signal']['account']
             SINGAL_TARGET = config['signal']['target']
-    except (FileNotFoundError, json.decoder.JSONDecodeError, IndexError) as error:
-        print(error)
+            SIGNAL_ERROR = config['signal']['error']
+    except Exception as error:
+        sendSignalTo(
+            SIGNAL_ACCOUNT,
+            SIGNAL_ERROR,
+            str(error))
         os.exit(1)
     main()
