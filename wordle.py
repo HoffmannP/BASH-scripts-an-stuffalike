@@ -1,17 +1,18 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 
 import words
 
-fixed = 'S__ER'
+fixed = '_AS_E'
 
 found = [
+    [ 's', 0, 3 ],
     # ['e', 1 ],
     # ['r', 2 ]
 ]
 
 remaining = ''
-excluded = 'otin'
-
+excluded = 'rinpu'
+lang = 'de'
 
 # -----
 
@@ -41,10 +42,15 @@ for position in range(CHARACTERS):
     print(position, ''.join(possible))
     iterator = iter(iterator(possible))
 
+word_list = {
+    'en': words.en,
+    'de': words.de
+}[lang]
+
 for word in iterator():
     for char in must_contain:
         if char not in word:
             break
     else:
-        if word in words.de:
+        if word in word_list:
             print(word, end='\t')
