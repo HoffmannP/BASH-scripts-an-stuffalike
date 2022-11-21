@@ -41,16 +41,19 @@ def main():
         try:
             inhalte[date] = {
                 'change': change,
-                'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in row[1] for cn in CLASS_NAME)]}
+                'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in str(row[1]) for cn in CLASS_NAME)]}
         except TypeError as e:
             print(readVertretungsplan(vertretungsplan['downloadUrl']))
             raise e
         last_change[date_ts] = change.timestamp()
-    with open(last_change_file_name, 'w') as f:
-        json.dump(last_change, f)
+
     result = printVertretungsplan(inhalte)
     if result is not None:
         sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
+
+    with open(last_change_file_name, 'w') as f:
+        json.dump(last_change, f)
+
 
 def readVertretungsplan(url):
     response = requests.get(url)
@@ -98,7 +101,8 @@ def sendSignalTo(account, target, send_text):
         '/usr/local/bin/signal-cli',
         '-u', account,
         'send',
-        *target],
+        *target,
+        '--message-from-stdin'],
         input=send_text,
         text=True,
         check=True,
@@ -106,19 +110,12 @@ def sendSignalTo(account, target, send_text):
 
 
 if __name__ == '__main__':
-    try:
-        with open(os.path.expanduser(CONFIG_FILE)) as f:
-            config = json.load(f)
-            CLIENT_ID = config['client']['id']
-            CLIENT_PW = config['client']['password']
-            CLASS_NAME = config['classname']
-            SIGNAL_ACCOUNT = config['signal']['account']
-            SINGAL_TARGET = config['signal']['target']
-            SIGNAL_ERROR = config['signal']['error']
-    except Exception as error:
-        sendSignalTo(
-            SIGNAL_ACCOUNT,
-            SIGNAL_ERROR,
-            str(error))
-        os.exit(1)
+    with open(os.path.expanduser(CONFIG_FILE)) as f:
+        config = json.load(f)
+        CLIENT_ID = config['client']['id']
+        CLIENT_PW = config['client']['password']
+        CLASS_NAME = config['classname']
+        SIGNAL_ACCOUNT = config['signal']['account']
+        SINGAL_TARGET = config['signal']['target']
+        SIGNAL_ERROR = config['signal']['error']
     main()

@@ -3,11 +3,11 @@
 import requests
 from collections import namedtuple
 from sys import argv
-import json
 
 Repository = namedtuple('Repository', 'name stars forks last_change')
 ENDPOINT = "https://api.github.com/graphql"
-AUTH_TOKEN = "***"
+AUTH_TOKEN = "***" # If you want to generate your own, see there
+# https://docs.github.com/en/graphql/guides/forming-calls-with-graphql#authenticating-with-graphql and give it the public_repo scope
 GRAPHQL_QUERY = '''query Forks($owner: String!, $name: String!) {
   repository(owner: $owner, name: $name) {
     nameWithOwner
@@ -58,7 +58,7 @@ def queryGitHub(repository):
         },
         'query': GRAPHQL_QUERY
     }
-    response = requests.post(ENDPOINT, headers={'Authorization': f'Bearer {AUTH_TOKEN}'}, data=json.dumps(request))
+    response = requests.post(ENDPOINT, headers={'Authorization': f'Bearer {AUTH_TOKEN}'}, json=request)
     return response.json()
 
 def parseRepository(repro):
