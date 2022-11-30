@@ -87,8 +87,10 @@ def printVertretungsplan(inhalte):
             continue
         lines.append(f'Vertretungsplan für {date.strftime("%A, den %x")} (Aktualisierung von {inhalt["change"].strftime("%c")})')
         for eintrag in inhalt['eintraege']:
+            while isNaN(eintrag[-1]):
+                eintrag = eintrag[:-1]
             if isNaN(eintrag[3]) and isNaN(eintrag[4]):
-                eintrag = eintrag[:3] + [''] + eintrag[5:]
+                eintrag = eintrag[:3] + [''] + eintrag
             stunde, fach, ausfLehr, ersatzLehr, notiz = eintrag[:5]
             fachString = '' if isNaN(fach) else f' {fach}'
             ersatzLehrerString = '' if isNaN(ersatzLehr) else f' → {ersatzLehr}'
