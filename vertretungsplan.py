@@ -2,6 +2,8 @@
 
 import json
 import requests
+import sys
+import typing
 import datetime
 import tempfile
 import os
@@ -12,19 +14,61 @@ import tabula
 
 CONFIG_FILE = '~/.config/newspoint_config.json'
 LAST_CHANGE_FILE = '~/.config/newspoint_lastchange.json'
+NAMES_FILE = '~/.config/newspoint_namefile.json'
+
+CONFIG: typing.Dict[str, typing.Union[str, bool]] = {
+    'ignore_last_change': False,
+    'last_change_file': '~/.config/newspoint_lastchange.json',
+    'names_file': '~/.config/newspoint_namefile.json',
+    'print_output': False
+}
+NAMES: typing.Dict[str, str] = {}
 
 def isNaN(variable):
     return isinstance(variable, float) and math.isnan(variable)
 
+def parseCommandline(config):
+    flags = sys.argv[1:]
+    while len(flags) > 0:
+        # print(flags)
+        if flags[0] in ['--force', '-f']:
+            config['ignore_last_change'] = True
+            flags = flags[1:]
+            continue
+        if flags[0] in ['--class', '-c']:
+            config['classname'] = flags[1].split(',')
+            flags = flags[2:]
+            continue
+        if flags[0] in ['--print', '-p']:
+            config['print_output'] = True
+            flags = flags[1:]
+            continue
+    return config
+
+
+
 def main():
-    last_change_file_name = os.path.expanduser(LAST_CHANGE_FILE)
+    global NAMES
     locale.setlocale(locale.LC_ALL, ('de_DE', 'UTF-8'))
-    try:
-        with open(last_change_file_name) as f:
-            last_change = json.load(f)
-    except (FileNotFoundError, json.decoder.JSONDecodeError):
+
+    last_change_file_name = os.path.expanduser(CONFIG['last_change_file'])
+    if len(sys.argv) > 1 and sys.argv[1] in ['--force', '-f']:
         last_change = {}
-    response = requests.get('https://newspointweb.de/mobile/appdata.ashx', params={ 'request': 'list', 'client': str(CLIENT_ID)})
+    else:
+        try:
+            with open(last_change_file_name) as f:
+                last_change = json.load(f)
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            last_change = {}
+
+    names_file_name = os.path.expanduser(CONFIG['names_file'])
+    try:
+        with open(names_file_name) as f:
+            NAMES = json.load(f)
+    except (FileNotFoundError, json.decoder.JSONDecodeError):
+        pass
+
+    response = requests.get('https://newspointweb.de/mobile/appdata.ashx', params={ 'request': 'list', 'client': str(CONFIG['client']['id'])})
     plaene = response.json()
     inhalte = {}
 
@@ -41,15 +85,21 @@ def main():
         try:
             inhalte[date] = {
                 'change': change,
-                'eintraege': [[row[0], *row[2:]] for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in str(row[1]) for cn in CLASS_NAME)]}
+                'eintraege': [row for row in readVertretungsplan(vertretungsplan['downloadUrl']) if any(cn in str(row[1]) for cn in CONFIG['classname'])]}
         except TypeError as e:
             print(readVertretungsplan(vertretungsplan['downloadUrl']))
             raise e
         last_change[date_ts] = change.timestamp()
 
     result = printVertretungsplan(inhalte)
-    if result is not None:
-        sendSignalTo(SIGNAL_ACCOUNT, SINGAL_TARGET, result)
+    if CONFIG['print_output']:
+        if result is not None:
+            print(result)
+        else:
+            print('[empty]')
+    else:
+        if result is not None:
+            sendSignalTo(CONFIG['signal']['account'], CONFIG['signal']['target'], result)
 
     with open(last_change_file_name, 'w') as f:
         json.dump(last_change, f)
@@ -65,7 +115,9 @@ def readVertretungsplan(url):
 
     table = []
     table_list = [t.values.tolist() for t in tables]
-    rows = [row for table in table_list for row in table]
+    rows = [(row[:-2] + [row[-1]] if len(row) == 8 else row) for row in [
+        (row[:-1] if isNaN(row[-1]) else row) for table in table_list for row in table]]
+    # print(rows)
 
     previous_row = rows[1][1:]
     for row in rows[2:]:
@@ -79,6 +131,19 @@ def readVertretungsplan(url):
     table.append(previous_row)
     return table
 
+def fullname(shortname):
+    global NAMES
+    if isNaN(shortname):
+        return '-'
+    if '/' in shortname:
+        name1, name2 = shortname.split('/', 1)
+        return f'{fullname(name1)}, {fullname(name2)}'
+    if shortname in NAMES:
+        return NAMES[shortname]
+    NAMES[shortname] = shortname
+    print(f'Konnte den Namen »{shortname}« nicht finden')
+    return shortname
+
 def printVertretungsplan(inhalte):
     lines = []
     for date in inhalte:
@@ -87,15 +152,13 @@ def printVertretungsplan(inhalte):
             continue
         lines.append(f'Vertretungsplan für {date.strftime("%A, den %x")} (Aktualisierung von {inhalt["change"].strftime("%c")})')
         for eintrag in inhalt['eintraege']:
-            while isNaN(eintrag[-1]):
-                eintrag = eintrag[:-1]
-            if isNaN(eintrag[3]) and isNaN(eintrag[4]):
-                eintrag = eintrag[:3] + [''] + eintrag
-            stunde, fach, ausfLehr, ersatzLehr, notiz = eintrag[:5]
+            stunde, klasse, fach, ausfLehr, ersatzLehr, notiz = eintrag
             fachString = '' if isNaN(fach) else f' {fach}'
+            ausfLehr = fullname(ausfLehr)
+            ersatzLehr = fullname(ersatzLehr)
             ersatzLehrerString = '' if isNaN(ersatzLehr) else f' → {ersatzLehr}'
             ausfLehrerString = ersatzLehrerString if isNaN(ausfLehr) else f' ({ausfLehr}{ersatzLehrerString})'
-            lines.append(f'{stunde}{fachString}{ausfLehrerString}: {notiz}')
+            lines.append(f'Klasse {klasse}: {stunde} Stunde{fachString}{ausfLehrerString}: {notiz}')
         lines.append('')
     if len(lines) == 0:
         return None
@@ -116,11 +179,6 @@ def sendSignalTo(account, target, send_text):
 
 if __name__ == '__main__':
     with open(os.path.expanduser(CONFIG_FILE)) as f:
-        config = json.load(f)
-        CLIENT_ID = config['client']['id']
-        CLIENT_PW = config['client']['password']
-        CLASS_NAME = config['classname']
-        SIGNAL_ACCOUNT = config['signal']['account']
-        SINGAL_TARGET = config['signal']['target']
-        SIGNAL_ERROR = config['signal']['error']
+        CONFIG = z = {**json.load(f), **CONFIG}
+    CONFIG = parseCommandline(CONFIG)
     main()
