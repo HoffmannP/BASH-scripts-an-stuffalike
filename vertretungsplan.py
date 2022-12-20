@@ -119,10 +119,16 @@ def readVertretungsplan(url):
         (row[:-1] if isNaN(row[-1]) else row) for table in table_list for row in table]]
     # print(rows)
 
+    if len(rows) == 0:
+        return table
+
     previous_row = rows[1][1:]
     for row in rows[2:]:
         if isNaN(row[1]):
             for i, last in enumerate(previous_row):
+                if len(row) < i + 2:
+                    print(f'Zeile ist zu kurz {i}+1 vs. {len(row)}: "{row}"')
+                    break
                 if not isNaN(row[i+1]):
                     previous_row[i] = f'{last} {row[i+1]}'
         else:
@@ -141,7 +147,8 @@ def fullname(shortname):
     if shortname in NAMES:
         return NAMES[shortname]
     NAMES[shortname] = shortname
-    print(f'Konnte den Namen »{shortname}« nicht finden')
+    search = f'$$("div.name").map(d => d.textContent.trim()).filter(t => Array.from("{shortname}").every(l => t.includes(l)))'
+    print(f'Konnte den Namen »{shortname}« nicht finden [{search}]')
     return shortname
 
 def printVertretungsplan(inhalte):
