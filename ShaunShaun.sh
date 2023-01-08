@@ -1,3 +1,3 @@
 #!/bin/bash
 
-/usr/bin/vlc --random /home/ber/Videos/Kinder/Shaun\ The\ Sheep/Season\ 0[345]/*
+/usr/bin/vlc --fullscreen --random /home/ber/Video/Kinder/Shaun\ The\ Sheep/Season\ 0[1-5]/*

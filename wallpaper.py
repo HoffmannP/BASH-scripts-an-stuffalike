@@ -7,9 +7,9 @@ from random import randint as rnd
 from subprocess import call
 
 desktop = 'cinnamon'
-resolution = '3840x1080' # zwei Monitore á 1920x1080
-category = 'Nature'
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/62.0.3202.75 Chrome/62.0.3202.75 Safari/537.36'
+resolution = '1680x1050'
+category = 'Nature'
 
 """
 Ab hier nichts mehr ändern
@@ -76,31 +76,24 @@ class WallpapersWide:
 
 def download(uri, filename):
 	browser = Browser()
-	with open(filename, 'w') as f:
-		f.buffer.write(browser.raw(uri))
+	with open(filename, 'wb') as f:
+		f.write(browser.raw(uri))
 
 def buildThreeDisplayWallpaper(original):
-	thirdScreen="1024x1280"
-	combined = original[:-4] + "_fullBackground.jpg"
-	call([
-		"/usr/bin/convert",
-		original, "-background", "black",
-		"(", original, "-resize", "%s^" % thirdScreen,
-		"-gravity", "center", "-extent",  thirdScreen, ")",
-		"-gravity", "North", "+append",
-		combined])
+	center = original[:-3] + "center.jpg"
+	call(["/usr/bin/convert", original, "-gravity", "center", "-crop", "38%x100%", "+repage", center])
+	combined = original[:-3] + "3dsp.jpg"
+	call(["/usr/bin/convert", original, center, "+append", combined])
+	call(["/bin/rm", center])
 	return combined
 
-
 setWallpaperFuncion = {
-	'mate': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.mate.background', 'picture-filename', fn]),
-	'cinnamon': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.cinnamon.desktop.background', 'picture-uri', 'file://' + fn])
-}
+    'mate': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.mate.background', 'picture-filename', fn]),
+    'cinnamon': lambda fn: call(['/usr/bin/gsettings', 'set', 'org.cinnamon.desktop.background', 'picture-uri', 'file://' + fn])}
 
 if __name__ == '__main__':
 	wallpaperSite = WallpapersWide(resolution, category)
 	imageInfo = wallpaperSite.randomImage()
 	localImageFile = '/tmp/wallpaper-' + imageInfo['identifier'] + '.jpg'
 	download(imageInfo['url'], localImageFile)
-	threeDisplayWallpaper = buildThreeDisplayWallpaper(localImageFile)
-	setWallpaperFuncion[desktop](threeDisplayWallpaper)
+	setWallpaperFuncion[desktop](localImageFile)
