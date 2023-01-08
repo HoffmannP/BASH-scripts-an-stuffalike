@@ -1,17 +1,18 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 
-fixed = '_I'
+import words
+
+fixed = '_AS_E'
 
 found = [
-    ['c', 0, 2 ],
-    ['e', 2, 3 ]
+    [ 's', 0, 3 ],
+    # ['e', 1 ],
+    # ['r', 2 ]
 ]
 
 remaining = ''
-excluded = 'ramds'
-
-
-# -----
+excluded = 'rinpu'
+lang = 'de'
 
 def iter(outer=['']):
     return lambda inner=['']: [ o + i for o in outer for i in inner ]
@@ -32,19 +33,25 @@ letters = baseset - {e.lower() for e in excluded}
 
 iterator = iter()
 letter = [None] * CHARACTERS
+must_contain = { f[0] for f in found }
 
 for position in range(CHARACTERS):
     if fixed[position].lower() in ALLLETTERS:
         possible = {fixed[position].lower()}
     else:
         possible = letters - {f[0].lower() for f in found if position in f[1:]}
+    print(position, ''.join(possible))
     iterator = iter(iterator(possible))
 
+word_list = {
+    'en': words.en,
+    'de': words.de
+}[lang]
+
 for word in iterator():
-    if word not in WORDLIST:
-        continue
-    for f in found:
-        if f[0] not in word:
+    for char in must_contain:
+        if char not in word:
             break
     else:
-        print(word, end='\t')
+        if word in word_list:
+            print(word, end='\t')
