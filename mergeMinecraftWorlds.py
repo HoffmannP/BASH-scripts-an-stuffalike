@@ -101,7 +101,7 @@ def copyPlayerFiles(keep, add):
         if player in keep['ids']:
             continue
         print(player)
-        for file in searchPlayerFiles(add, player):
+        for file in searchPlayerFiles(add['path'], player):
             shutil.copy2(
                 f'{add["path"]}/{file}',
                 f'{keep["path"]}/{file}')
