@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Shaun shaun
-Exec=sh /home/ber/Code/BASH-scripts-an-stuffalike/ShaunShaun.sh
-Type=Application
-Encoding=UTF-8
-Version=1.0
-Icon=/home/ber/Code/BASH-scripts-an-stuffalike/ShaunSchaun.png
-Terminal=false

@@ -1,42 +1,53 @@
-#!/usr/bin/python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import time
 
-""" Initialization """
-ds = '/proc/diskstats'
+# the fields in discstats are:
+# majId
+# minId
+# dev
+# rMerged
+# secRead
+# milsecRead
+# wrCompl
+# wMerged
+# secWrite
+# milsecWrite
+# IOprocess
+# IOsec
+# IOWsec
+
+# Initialization
+DISCKSTATS = '/proc/diskstats'
 old = {}
 new = {}
-f = open(ds, 'r')
-for line in f:
-    # [majId, minId, dev, rMerged, secRead, milsecRead, wrCompl, wMerged, secWrite, milsecWrite, IOprocess, IOsec, IOWsec]
-    parts = line.split()
-    dev = parts[2]
-    new[dev] = [float(i) for i in parts[3:]]
-f.close()
-
-""" running """
-while True:
-    time.sleep(2)
-    f = open(ds, 'r')
+with open(DISCKSTATS, 'r', encoding='utf8') as f:
     for line in f:
-        # [majId, minId, dev, rMerged, secRead, milsecRead, wrCompl, wMerged, secWrite, milsecWrite, IOprocess, IOsec, IOWsec]
         parts = line.split()
         dev = parts[2]
-        old[dev], new[dev] = new[dev], [float(i) for i in parts[3:]]
-	if new[dev][5] != old[dev][5]:
-	    read =  '%5.0f' % (512 * (new[dev][4]-old[dev][4]) / (new[dev][5]-old[dev][5]))
+        new[dev] = [float(i) for i in parts[3:]]
+
+# Running
+while True:
+    time.sleep(2)
+    with open(DISCKSTATS, 'r', encoding='utf8') as f:
+        for line in f:
+            parts = line.split()
+            dev = parts[2]
+            old[dev], new[dev] = new[dev], [float(i) for i in parts[3:]]
+        if new[dev][5] != old[dev][5]:
+            READ =  '{(512 * (new[dev][4]-old[dev][4]) / (new[dev][5]-old[dev][5])):5.0f}'
         else:
-	    if new[dev][4] == old[dev][4]:
-		read = '    0'
-	    else:
-       	        read = '    ∞'
-	if new[dev][9] != old[dev][9]:
-	    write =  '%5.0f' % (512 * (new[dev][8]-old[dev][8]) / (new[dev][9]-old[dev][9]))
+            if new[dev][4] == old[dev][4]:
+                READ = '    0'
+            else:
+                READ = '    ∞'
+        if new[dev][9] != old[dev][9]:
+            WRITE =  '{(512 * (new[dev][8]-old[dev][8]) / (new[dev][9]-old[dev][9])):5.0f}'
         else:
-	    if new[dev][8] == old[dev][8]:
-		write = '    0'
-	    else:
-       	        write = '    ∞'
-	print '%6s: r/w: %s/%s [b/s]' % (dev, read, write)
-    f.close()
+            if new[dev][8] == old[dev][8]:
+                WRITE = '    0'
+            else:
+                WRITE = '    ∞'
+        print(f'{dev:6s}: r/w: {READ}/{WRITE} [b/s]')
