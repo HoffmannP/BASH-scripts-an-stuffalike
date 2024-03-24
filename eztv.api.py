@@ -1,10 +1,16 @@
 #!env python
 
+import subprocess
 import requests
+import simple_term_menu
+import json
+import os.path
 
 LIMIT=100
 BEST_SIZE=1.7*2**10
 MAX_EP_PER_SE=1000
+SHOWLIST_FILE = 'eztv.json'
+
 
 def get_show_page(imdb_id, page=0, limit=LIMIT):
     url = f'https://eztvx.to/api/get-torrents?imdb_id={imdb_id}&page={page}&limit={limit}'
@@ -72,18 +78,36 @@ def print_showlist(se_list):
              print(f'* {season:2d}x{episode:02d}: {torrent["magnet_url"] if torrent is not None else "---"}')
         print('\n')
 
-def main():
-    showlist = [
-        ["Chicago Fire", 2261391, 12, 0],
-        ["Chicago PD", 2805096, 11, 0],
-        ["Chicago Med", 4655480, 9, 0],
-        ["The Handmaid's Tale", 5834204, 6, 0],
-        ["S.W.A.T.", 6111130, 7, 0],
-        ["9-1-1", 7235466, 7, 0],
-        ["9-1-1 Lone Star", 10323338, 5, 0],
-        ["Special Ops: Lioness", 13111078, 2, 0],
-        ["The Bear", 14452776, 2, 0]]
+def all():
     print_showlist(match_shows(showlist))
+
+def nice_se(se):
+    se, ep = se // MAX_EP_PER_SE, se % MAX_EP_PER_SE
+    return f'{se}x{ep}'
+
+def main():
+    showlist_path = f'{os.path.dirname(__file__)}/{SHOWLIST_FILE}'
+    with open(showlist_path, 'r', encoding='utf8') as file:
+        showlist = json.load(file)
+    show_selection = simple_term_menu.TerminalMenu([name for name, _, _, _ in showlist])
+    show_index = show_selection.show()
+    show = showlist[show_index]
+    print(show[0])
+    episodes = episode_list(*show[1:])
+    episode_selection = simple_term_menu.TerminalMenu([nice_se(i) for i in episodes.keys()])
+    episode_index = episode_selection.show()
+    episode_key = list(episodes.keys())[episode_index - 1]
+    if episode_index > 0:
+        episode_prev = list(episodes.keys())[episode_index - 1]
+        showlist[show_index][2] = episode_prev // MAX_EP_PER_SE
+        showlist[show_index][3] = episode_prev % MAX_EP_PER_SE
+        with open(showlist_path, 'w', encoding='utf8') as file:
+            json.dump(showlist, file, sort_keys=True, indent=4)
+    episode_prev = list(episodes.keys())[episode_index - 1]
+    episode = episodes[episode_key]
+    # subprocess.run(["kitty", "icat", episode['small_screenshot']])
+    subprocess.call(['xdg-open', episode['magnet_url']])
+
 
 if __name__ == '__main__':
     main()
