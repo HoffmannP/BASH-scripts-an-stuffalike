@@ -1,0 +1,14 @@
+# User alias specification
+
+# Runas alias specification
+Runas_Alias KINDER = leander, linus, laurin
+
+# Host alias specification
+
+# Cmnd alias specification
+Cmnd_Alias KILLALL = /usr/bin/killall
+Cmnd_Alias CHPSWD = /usr/bin/passwd linus,/usr/bin/passwd leander
+
+# User privilege specification
+ber ALL = (KINDER) NOPASSWD: KILLALL
+ber ALL = (ALL) NOPASSWD: CHPSWD
