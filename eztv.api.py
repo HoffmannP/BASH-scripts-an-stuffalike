@@ -79,6 +79,9 @@ def print_showlist(se_list):
         print('\n')
 
 def all():
+    showlist_path = f'{os.path.dirname(__file__)}/{SHOWLIST_FILE}'
+    with open(showlist_path, 'r', encoding='utf8') as file:
+        showlist = json.load(file)
     print_showlist(match_shows(showlist))
 
 def nice_se(se):
@@ -94,9 +97,11 @@ def main():
     show = showlist[show_index]
     print(show[0])
     episodes = episode_list(*show[1:])
-    episode_selection = simple_term_menu.TerminalMenu([nice_se(i) for i in episodes.keys()])
+    episode_keys = list(episodes.keys())
+    episode_selection = simple_term_menu.TerminalMenu([nice_se(i) for i in episode_keys])
     episode_index = episode_selection.show()
-    episode_key = list(episodes.keys())[episode_index - 1]
+    episode_key = episode_keys[episode_index]
+    print(nice_se(episode_key))
     if episode_index > 0:
         episode_prev = list(episodes.keys())[episode_index - 1]
         showlist[show_index][2] = episode_prev // MAX_EP_PER_SE
