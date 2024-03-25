@@ -1,56 +1,56 @@
 [
-    [
-        "Chicago Fire",
-        2261391,
-        12,
-        1
-    ],
-    [
-        "Chicago PD",
-        2805096,
-        11,
-        1
-    ],
-    [
-        "Chicago Med",
-        4655480,
-        9,
-        1
-    ],
-    [
-        "The Handmaid's Tale",
-        5834204,
-        6,
-        0
-    ],
-    [
-        "S.W.A.T.",
-        6111130,
-        7,
-        0
-    ],
-    [
-        "9-1-1",
-        7235466,
-        7,
-        0
-    ],
-    [
-        "9-1-1 Lone Star",
-        10323338,
-        5,
-        0
-    ],
-    [
-        "Special Ops: Lioness",
-        13111078,
-        2,
-        0
-    ],
-    [
-        "The Bear",
-        14452776,
-        2,
-        2
-    ]
+    {
+        "episode": "3",
+        "imdb_id": 2261391,
+        "name": "Chicago Fire",
+        "season": "12"
+    },
+    {
+        "episode": "3",
+        "imdb_id": 2805096,
+        "name": "Chicago PD",
+        "season": "11"
+    },
+    {
+        "episode": "3",
+        "imdb_id": 4655480,
+        "name": "Chicago Med",
+        "season": "9"
+    },
+    {
+        "episode": 0,
+        "imdb_id": 5834204,
+        "name": "The Handmaid's Tale",
+        "season": 6
+    },
+    {
+        "episode": 0,
+        "imdb_id": 6111130,
+        "name": "S.W.A.T.",
+        "season": 7
+    },
+    {
+        "episode": 0,
+        "imdb_id": 7235466,
+        "name": "9-1-1",
+        "season": 7
+    },
+    {
+        "episode": 0,
+        "imdb_id": 10323338,
+        "name": "9-1-1 Lone Star",
+        "season": 5
+    },
+    {
+        "episode": 0,
+        "imdb_id": 13111078,
+        "name": "Special Ops: Lioness",
+        "season": 2
+    },
+    {
+        "episode": 6,
+        "imdb_id": 14452776,
+        "name": "The Bear",
+        "season": 2
+    }
 ]
