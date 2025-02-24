@@ -1,18 +1,18 @@
 [
     {
-        "episode": "3",
+        "episode": "6",
         "imdb_id": 2261391,
         "name": "Chicago Fire",
         "season": "12"
     },
     {
-        "episode": "3",
+        "episode": "5",
         "imdb_id": 2805096,
         "name": "Chicago PD",
         "season": "11"
     },
     {
-        "episode": "3",
+        "episode": "6",
         "imdb_id": 4655480,
         "name": "Chicago Med",
         "season": "9"
@@ -48,9 +48,9 @@
         "season": 2
     },
     {
-        "episode": 6,
+        "episode": "10",
         "imdb_id": 14452776,
         "name": "The Bear",
-        "season": 2
+        "season": "2"
     }
 ]

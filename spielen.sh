@@ -3,7 +3,7 @@
 TIME=${1:-35}
 USER=linus
 EASYPASS=$USER
-PASS=Linus1Linus
+PASS="Linus1Linus"
 
 echo -en "$EASYPASS\n$EASYPASS\n" | sudo passwd $USER
 while true

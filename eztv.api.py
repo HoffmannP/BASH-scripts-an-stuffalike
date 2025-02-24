@@ -66,7 +66,7 @@ def episode_list(imdb_id, season, episode=0):
     return { se: best_size(ts) for se, ts in sorted(group_by_se(
         filter_field(
             load_show(imdb_id),
-            se=MAX_EP_PER_SE * season + episode,
+            se=MAX_EP_PER_SE * int(season) + int(episode),
             seeds=1,
             size=300)
         ).items()) }
